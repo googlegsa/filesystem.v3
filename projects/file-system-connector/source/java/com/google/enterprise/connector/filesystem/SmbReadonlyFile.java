@@ -156,8 +156,7 @@ public class SmbReadonlyFile implements ReadonlyFile<SmbReadonlyFile> {
     try {
       files = delegate.listFiles();
     } catch (SmbException e) {
-      throw IOExceptionHelper.newIOException(
-          "failed to list files in " + getPath(), e);
+      throw new IOException("failed to list files in " + getPath(), e);
     }
     List<SmbReadonlyFile> result = new ArrayList<SmbReadonlyFile>(files.length);
     for (int k = 0; k < files.length; ++k) {
@@ -177,8 +176,7 @@ public class SmbReadonlyFile implements ReadonlyFile<SmbReadonlyFile> {
     try {
       return delegate.lastModified();
     } catch (SmbException e) {
-      throw IOExceptionHelper.newIOException(
-          "failed to get last modified time for " + getPath(), e);
+      throw new IOException("failed to get last modified time for " + getPath(), e);
     }
   }
 

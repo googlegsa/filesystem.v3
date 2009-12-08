@@ -132,25 +132,9 @@ public class MimeTypeFinder {
     while ((bytesThisTime = is.read(result, bytesRead, result.length - bytesRead)) > 0) {
       bytesRead += bytesThisTime;
     }
-    return trim(result, bytesRead);
-  }
-  
-    /**
-     * Trims the passed in array to the desired length and
-     * returns the result. If the passed in array is already
-     * the desired length this simply returns the passed in
-     * array.
-     * <p>
-     * When the FileConnector drops support for java 1.5 this
-     * can probably be replaced with {@link Arrays#copyOf}.
-     */ 
-  private static byte[] trim(byte[] input, int desiredLength) {
-    if (input.length == desiredLength) {
-      return input;
-    } else {
-      byte[] result = new byte[desiredLength];
-      System.arraycopy(input, 0, result, 0, desiredLength);
-      return result;
+    if (bytesRead != result.length) {
+      result = Arrays.copyOf(result, bytesRead);
     }
+    return result;
   }
 }

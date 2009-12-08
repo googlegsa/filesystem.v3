@@ -54,7 +54,6 @@ public class FileSessionTest extends TestCase {
     assertEquals(0, fileSystemMonitorManager.getStartCount());
     assertEquals(0, fileSystemMonitorManager.getStopCount());
     assertEquals(0, fileSystemMonitorManager.getCleanCount());
-    assertEquals(0, fileSystemMonitorManager.getGuaranteeCount());
   }
 
   public void testTraversal() throws RepositoryException {
@@ -64,24 +63,20 @@ public class FileSessionTest extends TestCase {
     assertEquals(0, fileSystemMonitorManager.getStartCount());
     assertEquals(0, fileSystemMonitorManager.getStopCount());
     assertEquals(0, fileSystemMonitorManager.getCleanCount());
-    assertEquals(0, fileSystemMonitorManager.getGuaranteeCount());
 
     tm.startTraversal();
     assertEquals(1, fileSystemMonitorManager.getStartCount());
     assertEquals(1, fileSystemMonitorManager.getStopCount());
     assertEquals(1, fileSystemMonitorManager.getCleanCount());
-    assertEquals(1, fileSystemMonitorManager.getGuaranteeCount());
 
     tm.resumeTraversal(null);
     assertEquals(1, fileSystemMonitorManager.getStartCount());
     assertEquals(1, fileSystemMonitorManager.getStopCount());
     assertEquals(1, fileSystemMonitorManager.getCleanCount());
-    assertEquals(2, fileSystemMonitorManager.getGuaranteeCount());
 
     tm.startTraversal();
     assertEquals(2, fileSystemMonitorManager.getStartCount());
     assertEquals(2, fileSystemMonitorManager.getStopCount());
     assertEquals(2, fileSystemMonitorManager.getCleanCount());
-    assertEquals(3, fileSystemMonitorManager.getGuaranteeCount());
   }
 }

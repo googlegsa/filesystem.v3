@@ -21,7 +21,6 @@ import com.google.enterprise.connector.spi.TraversalContextAware;
 import com.google.enterprise.connector.spi.TraversalManager;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -62,12 +61,6 @@ public class FileTraversalManager implements TraversalManager, TraversalContextA
     try {
       FileDocumentList result = new FileDocumentList(checkpointAndChangeQueue,
           CheckpointAndChangeQueue.initializeCheckpointStringIfNull(checkpoint), fetcher);
-
-      Map<String, MonitorCheckpoint> guaranteesMade =
-          checkpointAndChangeQueue.getMonitorRestartPoints();
-
-      fileSystemMonitorManager.acceptGuarantees(guaranteesMade);
-
       return result;
     } catch (IOException e) {
       throw new RepositoryException("Failure when making DocumentList.", e);

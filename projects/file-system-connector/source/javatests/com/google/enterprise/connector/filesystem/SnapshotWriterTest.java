@@ -36,7 +36,7 @@ public class SnapshotWriterTest extends TestCase {
   @Override
   public void setUp() throws Exception {
     sw = new StringWriter();
-    writer = new SnapshotWriter(sw, null, "string");
+    writer = new SnapshotWriter(sw, null, "string", null);
   }
 
   public void testGetPath() {
@@ -64,7 +64,7 @@ public class SnapshotWriterTest extends TestCase {
       snapshotWriter.write(record);
       iMadeIt = true;
     } finally {
-      snapshotWriter.close();
+      snapshotWriter.close(iMadeIt);
     }
   }
 
@@ -94,7 +94,7 @@ public class SnapshotWriterTest extends TestCase {
       }
       iMadeIt = true;
     } finally {
-      writer.close();
+      writer.close(iMadeIt);
     }
 
     SnapshotReader reader =
@@ -116,7 +116,7 @@ public class SnapshotWriterTest extends TestCase {
         throw new IOException();
       }
     }
-    writer = new SnapshotWriter(new FailingWriter(), null, "string");
+    writer = new SnapshotWriter(new FailingWriter(), null, "string", null);
     Acl acl = Acl.newAcl(Arrays.asList("d1\\u1", "d1\\u2"), Arrays.asList("d1\\us"));
     SnapshotRecord before =
         new SnapshotRecord("java", "/foo/bar", SnapshotRecord.Type.FILE, 0L, acl,
@@ -143,7 +143,7 @@ public class SnapshotWriterTest extends TestCase {
         iMadeIt = true;
       }
     } finally {
-      writer.close();
+      writer.close(iMadeIt);
     }
     assertEquals(100, writer.getRecordCount());
   }

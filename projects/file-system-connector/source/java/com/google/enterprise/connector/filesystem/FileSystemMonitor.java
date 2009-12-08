@@ -74,8 +74,9 @@ import java.util.logging.Logger;
  * use it.
  *
  */
-// TODO: Retrieve authoritative snapshots from GSA when appropriate.
+// TODO: retrieve authoritative snapshots from the cloud when appropriate.
 public class FileSystemMonitor implements Runnable {
+  @SuppressWarnings("unused")
   private static final Logger LOG = Logger.getLogger(FileSystemMonitor.class.getName());
 
   /**
@@ -162,7 +163,6 @@ public class FileSystemMonitor implements Runnable {
    * @param checksumGenerator object to generate checksums
    * @param matcher for accepting and rejecting filenames
    * @param traversalContext null means accept any size/mime-type
-   * @param fileSink destination for filtered out file info
    */
   public FileSystemMonitor(String name, ReadonlyFile<?> root, SnapshotStore snapshotStore,
       Callback callback, ChecksumGenerator checksumGenerator, FilePatternMatcher matcher,
@@ -200,11 +200,8 @@ public class FileSystemMonitor implements Runnable {
    * @return a current checkpoint for this monitor.
    */
   private MonitorCheckpoint getCheckpoint() {
-    long snapNum = snapshotReader.getSnapshotNumber();
-    long readRecNum = snapshotReader.getRecordNumber();
-    long writeRecNum = snapshotWriter.getRecordCount();
-    // TODO: We believe we still need to work on add case.
-    return new MonitorCheckpoint(name, snapNum, readRecNum, writeRecNum);
+    return new MonitorCheckpoint(name, snapshotReader.getSnapshotNumber(), snapshotReader
+        .getRecordNumber(), snapshotWriter.getRecordCount());
   }
 
   /* @Override */
@@ -228,7 +225,8 @@ public class FileSystemMonitor implements Runnable {
       LOG.log(Level.WARNING, "IO exception", e);
     } catch (InterruptedException e) {
       // Normal termination via fileConnector.shutdown().
-      LOG.log(Level.INFO, "FileSystemMonitor " + name + " received stop signal.");
+      // TODO: invoke snapshotStore.finalizeCurrentWriter() when we are set
+      // up to recover from partial snapshot files.
       return;
     } catch (SnapshotStoreException e) {
       String msg = "problem with snapshot store";
@@ -246,27 +244,29 @@ public class FileSystemMonitor implements Runnable {
    */
   private void doOnePass() throws SnapshotStoreException, IOException,
       InterruptedException {
+    // Open the most recent snapshot and read the first record.
+    snapshotReader = snapshotStore.openMostRecentSnapshot();
     try {
-      // Open the most recent snapshot and read the first record.
-      this.snapshotReader = snapshotStore.openMostRecentSnapshot();
       current = snapshotReader.read();
-
       // Create an snapshot writer for this pass.
-      this.snapshotWriter = snapshotStore.openNewSnapshotWriter();
+      this.snapshotWriter = snapshotStore.getNewSnapshotWriter();
+      boolean iMadeIt = false;
+      try {
+        // Do one scan of the directory tree.
+        processFileOrDir(root);
 
-      // Do one scan of the directory tree.
-      processFileOrDir(root);
+        // Take care of any trailing paths in the snapshot.
+        processDeletes(null);
 
-      // Take care of any trailing paths in the snapshot.
-      processDeletes(null);
-
+        iMadeIt = true;
+      } finally {
+        snapshotWriter.close(iMadeIt);
+      }
     } finally {
-      snapshotStore.close(snapshotReader, snapshotWriter);
+      snapshotReader.close();
     }
+
     callback.passComplete(getCheckpoint());
-    snapshotWriter = null;
-    snapshotReader = null;
-    snapshotStore.deleteOldSnapshots();
   }
 
   /**
@@ -423,10 +423,6 @@ public class FileSystemMonitor implements Runnable {
     for (ReadonlyFile<?> f : dir.listFiles()) {
       processFileOrDir(f);
     }
-  }
-
-  void acceptGuarantee(MonitorCheckpoint cp) {
-    snapshotStore.acceptGuarantee(cp);
   }
 
   /**
