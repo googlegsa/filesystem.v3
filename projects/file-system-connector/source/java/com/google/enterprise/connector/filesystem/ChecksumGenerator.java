@@ -14,18 +14,31 @@
 
 package com.google.enterprise.connector.filesystem;
 
-// TODO: import JarUtils from connector-util.jar when it is available.
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
- * This main() just prints version information. See the BUILD file for the real
- * reason it exists.
+ * Provide checksums for files and input streams.
  *
  */
-public class FileConnectorMain {
-  private FileConnectorMain() { //Prevents instantiation.
-  }
+public interface ChecksumGenerator {
+  /**
+   * @param in
+   * @return a checksum of bytes read from {@code in}.
+   * @throws IOException
+   */
+  String getChecksum(InputStream in) throws IOException;
 
-  public static void main(String[] args) {
-    System.out.println("File connector v" + JarUtils.getJarVersion(FileConnectorMain.class));
-  }
+  /**
+   * @param file
+   * @return a checksum for all bytes in {@code file}.
+   * @throws IOException
+   */
+  String getChecksum(ReadonlyFile<?> file) throws IOException;
+
+  /**
+   * @param input
+   * @return a checksum for the UTF_8 bytes of {@code input}.
+   */
+  String getChecksum(String input);
 }

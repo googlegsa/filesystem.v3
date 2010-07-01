@@ -15,7 +15,6 @@
 package com.google.enterprise.connector.filesystem;
 
 import com.google.common.collect.ImmutableList;
-import com.google.enterprise.connector.diffing.TestDirectoryManager;
 import com.google.enterprise.connector.spi.ConfigureResponse;
 
 import junit.framework.TestCase;

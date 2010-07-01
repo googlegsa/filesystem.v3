@@ -14,7 +14,6 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.diffing.DocIdUtil;
 import com.google.enterprise.connector.spi.AuthenticationIdentity;
 import com.google.enterprise.connector.spi.AuthorizationManager;
 import com.google.enterprise.connector.spi.AuthorizationResponse;
@@ -44,7 +43,7 @@ public class FileAuthorizationManager implements AuthorizationManager {
    */
   private boolean canRead(String docId, AuthenticationIdentity identity) {
     Credentials credentials =
-        FileConnectorType.newCredentials(identity.getDomain(),
+        FileConnector.newCredentials(identity.getDomain(),
             identity.getUsername(), identity.getPassword());
     if (credentials == null) {
       // Null credentials mean identity has a null or zero length userName.

@@ -14,18 +14,26 @@
 
 package com.google.enterprise.connector.filesystem;
 
-// TODO: import JarUtils from connector-util.jar when it is available.
+import java.io.IOException;
 
 /**
- * This main() just prints version information. See the BUILD file for the real
- * reason it exists.
- *
- */
-public class FileConnectorMain {
-  private FileConnectorMain() { //Prevents instantiation.
+ * Compatibility Utility for creating an {@link IOException}.
+ * with a cause. This is needed because in Java 5
+ * IOException does not provide a constructor with a cause.
+ */ 
+class IOExceptionHelper {
+  // Prevents instantiation.
+  private IOExceptionHelper() {
   }
 
-  public static void main(String[] args) {
-    System.out.println("File connector v" + JarUtils.getJarVersion(FileConnectorMain.class));
+  /**
+   * Makes a new IOException with the supplied
+   * message and cause in a manner that is supported by
+   * java 5.
+   */
+  static IOException newIOException(String msg, Throwable cause) {
+    IOException result = new IOException(msg);
+    result.initCause(cause);
+    return result;
   }
 }

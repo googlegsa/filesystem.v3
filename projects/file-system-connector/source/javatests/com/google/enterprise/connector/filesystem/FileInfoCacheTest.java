@@ -14,9 +14,6 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.diffing.BasicChecksumGenerator;
-import com.google.enterprise.connector.diffing.DocumentSnapshotRepositoryMonitor;
-
 import junit.framework.TestCase;
 
 import java.io.ByteArrayInputStream;
@@ -24,7 +21,7 @@ import java.io.InputStream;
 import java.util.List;
 
 /**
- * Tests for the {@link DocumentSnapshotRepositoryMonitor}
+ * Tests for the {@link FileSystemMonitor}
  */
 public class FileInfoCacheTest extends TestCase {
   /**
@@ -119,7 +116,7 @@ public class FileInfoCacheTest extends TestCase {
   public void testChecksum() throws Exception {
     FakeReadonlyFile f = new FakeReadonlyFile("hi", Acl.newPublicAcl());
     FileInfoCache fileInfoCache =
-        new FileInfoCache(f, new BasicChecksumGenerator("SHA1"));
+        new FileInfoCache(f, new FileChecksumGenerator("SHA1"));
     assertEquals(0, f.getCountGetInputStream());
     fileInfoCache.getChecksum();
     assertEquals(1, f.getCountGetInputStream());
@@ -130,7 +127,7 @@ public class FileInfoCacheTest extends TestCase {
   public void testGetAcl() throws Exception {
     FakeReadonlyFile f = new FakeReadonlyFile("hi", Acl.newPublicAcl());
     FileInfoCache fileInfoCache =
-        new FileInfoCache(f, new BasicChecksumGenerator("SHA1"));
+        new FileInfoCache(f, new FileChecksumGenerator("SHA1"));
     assertEquals(0, f.getCountGetAcl());
     fileInfoCache.getAcl();
     assertEquals(1, f.getCountGetAcl());

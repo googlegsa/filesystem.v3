@@ -14,18 +14,23 @@
 
 package com.google.enterprise.connector.filesystem;
 
-// TODO: import JarUtils from connector-util.jar when it is available.
-
 /**
- * This main() just prints version information. See the BUILD file for the real
- * reason it exists.
+ * Indicates an error writing a snapshot.
  *
  */
-public class FileConnectorMain {
-  private FileConnectorMain() { //Prevents instantiation.
+public class SnapshotWriterException extends SnapshotStoreException {
+  /**
+   * @param message
+   */
+  public SnapshotWriterException(String message) {
+    super(message);
   }
 
-  public static void main(String[] args) {
-    System.out.println("File connector v" + JarUtils.getJarVersion(FileConnectorMain.class));
+  /**
+   * @param message
+   * @param cause
+   */
+  public SnapshotWriterException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

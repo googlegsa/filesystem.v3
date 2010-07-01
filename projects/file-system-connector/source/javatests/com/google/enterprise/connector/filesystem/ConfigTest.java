@@ -14,8 +14,6 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.diffing.TestDirectoryManager;
-
 import junit.framework.TestCase;
 
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
@@ -38,7 +36,6 @@ public class ConfigTest extends TestCase {
   public void setUp() throws Exception {
 
     File workDir = new TestDirectoryManager(this).makeDirectory("workdir");
-    File startDir = new TestDirectoryManager(this).makeDirectory("startdir");
 
     goodConfig = new HashMap<String, String>();
     goodConfig.put("googleConnectorWorkDir", workDir.getAbsolutePath());
@@ -50,7 +47,7 @@ public class ConfigTest extends TestCase {
       goodConfig.put("exclude_" + i, "");
     }
 
-    goodConfig.put("start_0", startDir.getAbsolutePath());
+    goodConfig.put("start_0", "/home/xyz/crawltestxx");
     goodConfig.put("domain", "domain1");
     goodConfig.put("user", "xyz");
     goodConfig.put("password", "test");

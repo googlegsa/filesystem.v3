@@ -14,10 +14,7 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.diffing.ChecksumGenerator;
-
 import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * Class to get and cache information about a file.
@@ -54,12 +51,7 @@ class FileInfoCache {
    */
   String getChecksum() throws IOException {
     if (checksum == null) {
-      InputStream is = file.getInputStream();
-      try {
-        checksum = checksumGenerator.getChecksum(is);
-      } finally {
-        is.close();
-      }
+      checksum = checksumGenerator.getChecksum(file);
     }
     return checksum;
   }
