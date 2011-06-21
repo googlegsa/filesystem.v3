@@ -1,11 +1,11 @@
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.filesystem.FileDocumentHandle.DocumentContext;
+import com.google.enterprise.connector.diffing.ChecksumGenerator;
+import com.google.enterprise.connector.diffing.DocumentSink;
+import com.google.enterprise.connector.diffing.LoggingDocumentSink;
+import com.google.enterprise.connector.diffing.SystemClock;
+import com.google.enterprise.connector.diffing.TraversalContextManager;
 import com.google.enterprise.connector.spi.RepositoryDocumentException;
-import com.google.enterprise.connector.util.ChecksumGenerator;
-import com.google.enterprise.connector.util.SystemClock;
-import com.google.enterprise.connector.util.diffing.DocumentSink;
-import com.google.enterprise.connector.util.diffing.LoggingDocumentSink;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,7 +19,11 @@ public class FileDocumentSnapshotRepositoryList
   private final PathParser pathParser;
   private final Collection<String> startPaths;
   private final FilePatternMatcher filePatternMatcher;
-  private final DocumentContext context;
+  private final Credentials credentials;
+  private final TraversalContextManager traversalContextManager;
+  private final FileSystemTypeRegistry fileSystemTypeRegistry;
+  private final boolean pushAcls;
+  private final boolean markAllDocumentsPublic;
 
   /**
    * Constructs a {@link FileDocumentSnapshotRepositoryList} from
@@ -31,14 +35,22 @@ public class FileDocumentSnapshotRepositoryList
   FileDocumentSnapshotRepositoryList(ChecksumGenerator checksumGenerator,
       PathParser pathParser, List<String> userEnteredStartPaths,
       List<String> includePatterns, List<String> excludePatterns,
-      DocumentContext context)
+      String userName, String password, String domainName,
+      TraversalContextManager traversalContextManager,
+      FileSystemTypeRegistry fileSystemTypeRegistry,
+      boolean pushAcls, boolean markAllDocumentsPublic)
       throws RepositoryDocumentException {
     this.checksumGenerator = checksumGenerator;
     this.pathParser = pathParser;
     this.startPaths = normalizeStartPaths(userEnteredStartPaths);
     this.filePatternMatcher = FileConnectorType.newFilePatternMatcher(
         includePatterns, excludePatterns);
-    this.context = context;
+    this.credentials = FileConnectorType.newCredentials(
+        domainName, userName, password);
+    this.traversalContextManager = traversalContextManager;
+    this.fileSystemTypeRegistry = fileSystemTypeRegistry;
+    this.pushAcls = pushAcls;
+    this.markAllDocumentsPublic = markAllDocumentsPublic;
     for (String startPath : startPaths) {
       add(newFileDocumentSnapshotRepository(startPath));
     }
@@ -60,7 +72,7 @@ public class FileDocumentSnapshotRepositoryList
 
   private FileDocumentSnapshotRepository newFileDocumentSnapshotRepository(
       String startPath) throws RepositoryDocumentException {
-    ReadonlyFile<?> root = pathParser.getFile(startPath, context.getCredentials());
+    ReadonlyFile<?> root = pathParser.getFile(startPath, credentials);
     if (root == null) {
       throw new RepositoryDocumentException("failed to open start path: "
           + startPath);
@@ -68,8 +80,9 @@ public class FileDocumentSnapshotRepositoryList
 
     FileDocumentSnapshotRepository repository =
       new FileDocumentSnapshotRepository(root, DOCUMENT_SINK,
-          filePatternMatcher, checksumGenerator,
-          SystemClock.INSTANCE, context);
+          filePatternMatcher, traversalContextManager, checksumGenerator,
+          SystemClock.INSTANCE, new MimeTypeFinder(), credentials,
+          fileSystemTypeRegistry, pushAcls, markAllDocumentsPublic);
     return repository;
   }
 }

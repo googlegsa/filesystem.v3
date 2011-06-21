@@ -13,11 +13,10 @@
 // limitations under the License.
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.util.diffing.DocIdUtil;
-import com.google.enterprise.connector.util.diffing.DocumentHandle;
-import com.google.enterprise.connector.util.diffing.testing.FakeTraversalContext;
-import com.google.enterprise.connector.util.diffing.TraversalContextManager;
-import com.google.enterprise.connector.filesystem.FileDocumentHandle.DocumentContext;
+import com.google.enterprise.connector.diffing.DocIdUtil;
+import com.google.enterprise.connector.diffing.DocumentHandle;
+import com.google.enterprise.connector.diffing.FakeTraversalContext;
+import com.google.enterprise.connector.diffing.TraversalContextManager;
 import com.google.enterprise.connector.spi.Document;
 import com.google.enterprise.connector.spi.SpiConstants;
 import com.google.enterprise.connector.spi.TraversalContext;
@@ -42,11 +41,10 @@ public class FileDocumentHandleFactoryTest extends TestCase {
     TraversalContext traversalContext =
         new FakeTraversalContext();
     traversalContextManager.setTraversalContext(traversalContext);
-    DocumentContext context = new DocumentContext(
+    factory = new FileDocumentHandleFactory(
         new FileSystemTypeRegistry(Arrays.asList(fileFactory)),
         true, false, null, null, null,
         new MimeTypeFinder(), traversalContextManager);
-    factory = new FileDocumentHandleFactory(context);
   }
 
   public void testFromString() throws Exception {

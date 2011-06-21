@@ -30,12 +30,12 @@ public interface FileSystemType {
   /**
    * Creates a file given a {@code path} and security {@code credentials}.
    *
-   * @param path An absolute path identifing file to be retrieved.
-   * @param credentials Potentially required for authentication.
+   * @param path
+   * @param credentials
    * @return a ReadonlyFile corresponding to {@code path}.
    * @throws RepositoryDocumentException if the path is malformed.
    */
-  public ReadonlyFile<?> getFile(String path, Credentials credentials) throws RepositoryDocumentException;
+  ReadonlyFile<?> getFile(String path, Credentials credentials) throws RepositoryDocumentException;
 
   /**
    * Returns true if the provided path follows the syntactic conventions for
@@ -44,7 +44,7 @@ public interface FileSystemType {
    * value of true does not guarantee that the path is valid or refers to an
    * actual file.
    */
-  public boolean isPath(String path);
+  boolean isPath(String path);
 
   /**
    * Return a {@link ReadonlyFile} that is readable. This function is intended
@@ -53,12 +53,6 @@ public interface FileSystemType {
    * @throws RepositoryDocumentException if the provided path does not refer to
    *         a file that is readable with the provided credentials.
    */
-  public ReadonlyFile<?> getReadableFile(String path, Credentials credentials)
+  ReadonlyFile<?> getReadableFile(String path, Credentials credentials)
       throws RepositoryDocumentException;
-
-  /**
-   * Returns whether this file system requires user name and password.
-   * @return true / false depending on whether credentials are required or not.
-   */
-  public boolean isUserPasswordRequired();
 }

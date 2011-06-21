@@ -14,15 +14,14 @@
 package com.google.enterprise.connector.filesystem;
 
 import com.google.common.collect.ImmutableList;
-import com.google.enterprise.connector.filesystem.FileDocumentHandle.DocumentContext;
+import com.google.enterprise.connector.diffing.DocumentSink;
+import com.google.enterprise.connector.diffing.DocumentSnapshot;
+import com.google.enterprise.connector.diffing.BasicChecksumGenerator;
+import com.google.enterprise.connector.diffing.FakeTraversalContext;
+import com.google.enterprise.connector.diffing.FilterReason;
+import com.google.enterprise.connector.diffing.SystemClock;
+import com.google.enterprise.connector.diffing.TraversalContextManager;
 import com.google.enterprise.connector.spi.TraversalContext;
-import com.google.enterprise.connector.util.BasicChecksumGenerator;
-import com.google.enterprise.connector.util.SystemClock;
-import com.google.enterprise.connector.util.diffing.DocumentSink;
-import com.google.enterprise.connector.util.diffing.DocumentSnapshot;
-import com.google.enterprise.connector.util.diffing.FilterReason;
-import com.google.enterprise.connector.util.diffing.TraversalContextManager;
-import com.google.enterprise.connector.util.diffing.testing.FakeTraversalContext;
 
 import junit.framework.TestCase;
 
@@ -54,13 +53,12 @@ public class FileDocumentSnapshotRepositoryTest extends TestCase {
     tcm.setTraversalContext(TRAVERSAL_CONTEXT);
     FileSystemTypeRegistry fileSystemTypeRegistry =
         new FileSystemTypeRegistry(Arrays.asList(new MockFileSystemType(root)));
-    DocumentContext context = new DocumentContext(fileSystemTypeRegistry,
-        PUSH_ACLS, MARK_ALL_DOCUMENTS_PUBLIC, CREDENTIALS,
-        MIME_TYPE_FINDER, tcm);
+
     FileDocumentSnapshotRepository result =
         new FileDocumentSnapshotRepository(root, sink, matcher,
-            CHECKSUM_GENERATOR, SystemClock.INSTANCE,
-            context);
+            tcm, CHECKSUM_GENERATOR, SystemClock.INSTANCE,
+            MIME_TYPE_FINDER, CREDENTIALS, fileSystemTypeRegistry,
+            PUSH_ACLS, MARK_ALL_DOCUMENTS_PUBLIC);
     return result;
   }
 
@@ -167,13 +165,11 @@ public class FileDocumentSnapshotRepositoryTest extends TestCase {
     tcm.setTraversalContext(new FakeTraversalContext(maxSizeData.length()));
     FileSystemTypeRegistry fileSystemTypeRegistry =
       new FileSystemTypeRegistry(Arrays.asList(new MockFileSystemType(root)));
-    DocumentContext context = new DocumentContext(fileSystemTypeRegistry,
-        PUSH_ACLS, MARK_ALL_DOCUMENTS_PUBLIC, CREDENTIALS,
-        MIME_TYPE_FINDER, tcm);
     FileDocumentSnapshotRepository dsr =
       new FileDocumentSnapshotRepository(root, sink, ALL_MATCHER,
-          CHECKSUM_GENERATOR, SystemClock.INSTANCE,
-          context);
+          tcm , CHECKSUM_GENERATOR, SystemClock.INSTANCE, MIME_TYPE_FINDER,
+          CREDENTIALS, fileSystemTypeRegistry, PUSH_ACLS,
+          MARK_ALL_DOCUMENTS_PUBLIC);
     for(int ix= 0; ix < 2; ix++) {
       Iterator<FileDocumentSnapshot> it = dsr.iterator();
       assertTrue(it.hasNext());
@@ -190,8 +186,8 @@ public class FileDocumentSnapshotRepositoryTest extends TestCase {
   }
 
   public void testQuery_filterNotIncludPattern() throws Exception {
-    List<String> include = ImmutableList.of("/foo/bar");
-    List<String> exclude = ImmutableList.of("/foo/bar/d1");
+    List<String> include = ImmutableList.of("/foo/bar/f1");
+    List<String> exclude = ImmutableList.of();
     FilePatternMatcher matcher = new FilePatternMatcher(include, exclude);
 
     MockReadonlyFile root = MockReadonlyFile.createRoot("/foo/bar");
@@ -210,7 +206,7 @@ public class FileDocumentSnapshotRepositoryTest extends TestCase {
       assertEquals(1, sink.getCountSunk());
       //Note d1 is not included either but FileRepositoryQuery traverses
       //it anyway.
-      assertTrue(sink.contains(d1.getPath(), FilterReason.PATTERN_MISMATCH));
+      assertTrue(sink.contains(notIncluded.getPath(), FilterReason.PATTERN_MISMATCH));
       sink.reset();
     }
   }

@@ -17,7 +17,6 @@ package com.google.enterprise.connector.filesystem;
 import com.google.enterprise.connector.spi.RepositoryDocumentException;
 
 import jcifs.Config;
-import jcifs.smb.SmbException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,15 +47,6 @@ public class SmbFileSystemType implements FileSystemType {
   }
 
   private final boolean stripDomainFromAces;
-  /**
-   * Flag to turn on / off the last access time reset feature for SMB crawls
-   */
-  private final boolean lastAccessTimeResetFlag;
-
-  /**
-   * Security level to be considered for fetching the ACL for files.
-   */
-  private final String securityLevel;
 
   /**
    * Configures the jcifs library by loading configuration properties from the
@@ -102,29 +92,15 @@ public class SmbFileSystemType implements FileSystemType {
    *        {@link SmbReadonlyFile#getAcl()} {@link SmbReadonlyFile} objects
    *        this creates and if false domains will be included in the form
    *        {@literal domainName\\userOrGroupName}.
-   * @param lastAccessTimeResetFlag if true the application will try to reset  
-   *        the last access time of the file it crawled; if false the last 
-   *        access time will not be reset and will change after the file crawl.       
    */
-  /* @VisibleForTesting */ 
-  public SmbFileSystemType(boolean stripDomainFromAces, 
-      boolean lastAccessTimeResetFlag, String securityLevel) {
+  public SmbFileSystemType(boolean stripDomainFromAces) {
     this.stripDomainFromAces = stripDomainFromAces;
-    this.lastAccessTimeResetFlag = lastAccessTimeResetFlag;
-    this.securityLevel = securityLevel;
-  }
-  
-  public SmbFileSystemType(SmbFilePropertyFetcher propertyFetcher) {
-    this(propertyFetcher.isStripDomainOfAcesFlag(),
-        propertyFetcher.isLastAccessResetFlagForSmb(),
-            propertyFetcher.getAceSecurityLevel());
   }
 
   /* @Override */
   public SmbReadonlyFile getFile(String path, Credentials credentials)
       throws RepositoryDocumentException {
-    return new SmbReadonlyFile(path, credentials, stripDomainFromAces,
-        lastAccessTimeResetFlag, securityLevel);
+    return new SmbReadonlyFile(path, credentials, stripDomainFromAces);
   }
 
   /* @Override */
@@ -143,53 +119,40 @@ public class SmbFileSystemType implements FileSystemType {
    *   smb://host/path
    * </pre>
    *
-   * The CIFS library is very picky about trailing slashes: directories must
-   * end in slash and regular files must not. This parser is much less picky:
-   * it tries both and uses whichever yields a readable file.
+   * The CIFS library is very picky about trailing slashes: directories must end
+   * in slash and regular files must not. This parser is much less picky: it
+   * tries both and uses whichever yields a readable file.
    *
    * @throws RepositoryDocumentException if {@code path} is valid.
-   * @throws IllegalArgumentException if {@link #isPath} returns false for
-   * path.
+   * @throws IllegalArgumentException if {@link #isPath} returns false for path.
    */
   /* @Override */
-  public SmbReadonlyFile getReadableFile(final String smbStylePath,
-      final Credentials credentials)
-          throws RepositoryDocumentException, WrongSmbTypeException {
+  public SmbReadonlyFile getReadableFile(final String smbStylePath, final Credentials credentials)
+      throws RepositoryDocumentException, WrongSmbTypeException {
     if (!isPath(smbStylePath)) {
       throw new IllegalArgumentException("Invalid path " + smbStylePath);
     }
+
     SmbReadonlyFile result = getReadableFileHelper(smbStylePath, credentials);
+
     if (null == result) {
-      throw new RepositoryDocumentException("failed to open file: " 
-          + smbStylePath);
+      throw new RepositoryDocumentException("failed to open file: " + smbStylePath);
     } else if (!result.isTraversable()) {
-      throw new WrongSmbTypeException("Wrong smb type", null);
+      throw new WrongSmbTypeException();
     } else {
       return result;
     }
   }
 
-  private SmbReadonlyFile getReadableFileHelper(String path,
-      Credentials credentials) throws FilesystemRepositoryDocumentException {
+  private SmbReadonlyFile getReadableFileHelper(String path, Credentials credentials) {
     SmbReadonlyFile result = null;
     try {
-      result = new SmbReadonlyFile(path, credentials, stripDomainFromAces,
-          lastAccessTimeResetFlag, securityLevel);
-      if (!result.exists()) {
-        throw new NonExistentResourceException(
-            "This resource path does not exist: " + path);
+      result = new SmbReadonlyFile(path, credentials, stripDomainFromAces);
+      if (!result.canRead()) {
+        result = null;
       }
-    } catch (FilesystemRepositoryDocumentException e) {
-      LOG.info("Validation error occured: " + e.getMessage());
-      throw e;
     } catch(RepositoryDocumentException rde) {
       result = null;
-      if (rde.getCause() instanceof SmbException) {
-        SmbException smbe = (SmbException)rde.getCause();
-        if (smbe.getNtStatus() == SmbException.NT_STATUS_ACCESS_DENIED) {
-          throw new InsufficientAccessException("access denied", smbe); 
-        }
-      }
     }
     return result;
   }
@@ -198,39 +161,4 @@ public class SmbFileSystemType implements FileSystemType {
   public String getName() {
     return SmbReadonlyFile.FILE_SYSTEM_TYPE;
   }
-  
-  /* @Override */
-  public boolean isUserPasswordRequired() {
-    return true;
-  }
-  
-  /**
-   * Interface to retrieve the properties required for Smb crawling. 
-   */
-  public static interface SmbFilePropertyFetcher {
-    /**
-     * Gets the AceSecurityLevel
-     * @return Security level to be used for fetching ACL.
-     */
-    String getAceSecurityLevel();
-    
-    /**
-     * Gets the stripDomainOfACes
-     * @return Flag to decide whether or not to strip the domain off of ACE.
-     */
-    boolean isStripDomainOfAcesFlag();
-    
-    /**
-     * Gets the markAllDocumentsPublic
-     * @return Flag to decided whether or not to mark all documents as public.
-     */
-    boolean isMarkDocumentPublicFlag();
-      
-    /**
-     * Gets the lastAccessTimeResetFlag
-     * @return Flag to decide whether or not to reset the last access time of file.
-     */
-    boolean isLastAccessResetFlagForSmb();
-  }
-  
 }

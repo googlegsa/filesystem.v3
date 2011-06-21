@@ -21,37 +21,32 @@ import com.google.common.labs.matcher.UrlMatcher;
 
 /**
  * A matcher for file paths.
- * <p>
- * Thread safe.
+ *
+ * <p>Thread safe.
+ *
  */
 public class FilePatternMatcher {
-
-  // private static final Logger LOG =
-  // Logger.getLogger(FilePatternMatcher.class.getName());
+  //private static final Logger LOG = Logger.getLogger(FilePatternMatcher.class.getName());
 
   private final PatternMatcher exclude;
   private final PatternMatcher include;
 
   /**
    * Create a pattern matcher that accepts files that match any of the {@code
-   * includePatterns} but none of the {@code excludePatterns}. Patterns must not
-   * be null, zero length or all white space.
-   * 
+   * includePatterns} but none of the {@code excludePatterns}. Patterns must
+   * not be null, zero length or all white space.
    * @param includePatterns
    * @param excludePatterns
    */
-  public FilePatternMatcher(Iterable<String> includePatterns,
-          Iterable<String> excludePatterns) {
-    include = new UrlMatcher(false /* disable cache */);
-
+  public FilePatternMatcher(Iterable<String> includePatterns, Iterable<String> excludePatterns) {
+    include = new UrlMatcher();
     addPatterns(include, includePatterns);
 
-    exclude = new UrlMatcher(false /* disable cache */);
+    exclude = new UrlMatcher();
     addPatterns(exclude, excludePatterns);
   }
 
-  private static void addPatterns(PatternMatcher matcher,
-          Iterable<String> patterns) {
+  private static void addPatterns(PatternMatcher matcher, Iterable<String> patterns) {
     for (String pattern : patterns) {
       if (pattern == null || pattern.trim().length() == 0) {
         throw new IllegalArgumentException("Illegal pattern " + patterns);

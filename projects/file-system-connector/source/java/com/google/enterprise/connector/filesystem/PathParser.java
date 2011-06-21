@@ -36,35 +36,13 @@ public class PathParser {
    * @throws RepositoryDocumentException
    */
   public ReadonlyFile<?> getFile(String path, Credentials credentials)
-      throws UnknownFileSystemException, RepositoryDocumentException {
+      throws RepositoryDocumentException {
     for (FileSystemType fileSystemType : fileSystemTypeRegisty) {
       if (fileSystemType.isPath(path)) {
-        ReadonlyFile<?> file = fileSystemType.getReadableFile(path, credentials);
-        if(!file.exists()) {
-          throw new NonExistentResourceException("Path does not exist: " + path);
-        } else if (!file.canRead()) {
-          throw new InsufficientAccessException("User doesn't have access to : " + path);
-        }
-        return file;
+        return fileSystemType.getReadableFile(path, credentials);
       }
     }
     // Cannot find anything.
-    throw new UnknownFileSystemException("path does not match known file system: " + path);
-  }
-  
-  /**
-   * Returns whether the credentials are required to crawl the given start path.
-   * @param path path to crawl
-   * @return true / false depending on whether the credentials are required or not.
-   */
-  public boolean isUserNamePasswordNeeded(String path) {
-    for (FileSystemType fileSystemType : fileSystemTypeRegisty) {
-      if (fileSystemType.isPath(path)) {
-        if (fileSystemType.isUserPasswordRequired()) {
-          return true;
-        }
-      }
-    }
-    return false;
+    throw new RepositoryDocumentException("path does not match known file system: " + path);
   }
 }

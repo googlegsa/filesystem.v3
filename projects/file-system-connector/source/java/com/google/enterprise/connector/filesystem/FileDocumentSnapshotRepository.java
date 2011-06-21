@@ -13,14 +13,14 @@
 // limitations under the License.
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.filesystem.FileDocumentHandle.DocumentContext;
-import com.google.enterprise.connector.util.ChecksumGenerator;
-import com.google.enterprise.connector.util.Clock;
-import com.google.enterprise.connector.util.diffing.DocumentSink;
-import com.google.enterprise.connector.util.diffing.DocumentSnapshot;
-import com.google.enterprise.connector.util.diffing.FilterReason;
-import com.google.enterprise.connector.util.diffing.SnapshotRepository;
-import com.google.enterprise.connector.util.diffing.SnapshotRepositoryRuntimeException;
+import com.google.enterprise.connector.diffing.ChecksumGenerator;
+import com.google.enterprise.connector.diffing.Clock;
+import com.google.enterprise.connector.diffing.DocumentSink;
+import com.google.enterprise.connector.diffing.DocumentSnapshot;
+import com.google.enterprise.connector.diffing.FilterReason;
+import com.google.enterprise.connector.diffing.SnapshotRepository;
+import com.google.enterprise.connector.diffing.SnapshotRepositoryRuntimeException;
+import com.google.enterprise.connector.diffing.TraversalContextManager;
 import com.google.enterprise.connector.spi.TraversalContext;
 
 import java.io.IOException;
@@ -28,8 +28,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * {@link SnapshotRepository} for returning {@link ReadonlyFile} objects
@@ -51,23 +49,35 @@ public class FileDocumentSnapshotRepository
   private final ReadonlyFile<?> root;
   private final DocumentSink fileSink;
   private final FilePatternMatcher matcher;
+  private final TraversalContextManager traversalContextManager;
   private final ChecksumGenerator checksumGenerator;
   private final Clock clock;
-  private static final Logger LOG = Logger.getLogger(FileDocumentSnapshotRepository.class.getName());
-  private final DocumentContext context;
+  private final MimeTypeFinder mimeTypeFinder;
+  private final Credentials credentials;
+  private final FileSystemTypeRegistry fileSystemTypeRegistry;
+  private final boolean pushAcls;
+  private final boolean markAllDcoumentsPublic;
 
 
 
   FileDocumentSnapshotRepository(ReadonlyFile<?> root, DocumentSink fileSink,
       FilePatternMatcher matcher,
+      TraversalContextManager traversalContextManager,
       ChecksumGenerator checksomeGenerator, Clock clock,
-      DocumentContext context) {
+      MimeTypeFinder mimeTypeFinder, Credentials credentials,
+      FileSystemTypeRegistry fileSystemTypeRegistry,
+      boolean pushAcls, boolean markAllDcoumentsPublic) {
     this.root = root;
     this.fileSink = fileSink;
+    this.traversalContextManager = traversalContextManager;
     this.matcher = matcher;
     this.checksumGenerator = checksomeGenerator;
     this.clock = clock;
-    this.context = context;
+    this.mimeTypeFinder = mimeTypeFinder;
+    this.credentials = credentials;
+    this.fileSystemTypeRegistry = fileSystemTypeRegistry;
+    this.pushAcls = pushAcls;
+    this.markAllDcoumentsPublic = markAllDcoumentsPublic;
   }
 
   /* @Override */
@@ -87,14 +97,9 @@ public class FileDocumentSnapshotRepository
     try {
       List<? extends ReadonlyFile<?>> result = dir.listFiles();
       return result;
-    } catch (DirectoryListingException e) {
-      LOG.log(Level.WARNING, "failed to list files in " + dir.getPath(), e);
-      return new ArrayList<ReadonlyFile<?>>();
     } catch (IOException ioe) {
-      throw new SnapshotRepositoryRuntimeException("IOException while processing the directory " + dir.getPath(), ioe);
-    } catch (InsufficientAccessException e) {
-      LOG.log(Level.WARNING, "Due to insufficient privileges, failed to list files in " + dir.getPath(), e);
-      return new ArrayList<ReadonlyFile<?>>();
+      throw new SnapshotRepositoryRuntimeException(
+          "Directory Listing failed", ioe);
     }
   }
 
@@ -134,12 +139,8 @@ public class FileDocumentSnapshotRepository
           ReadonlyFile<?> f = l.get(0);
           if (f.isDirectory()) {
             l.remove(0);
-            if (f.acceptedBy(matcher)) {
-              // Copy of the returned list because we modify our copy.
-              traversalStateStack.add(new ArrayList<ReadonlyFile<?>>(listFiles(f)));
-            } else {
-              fileSink.add(f.getPath(), FilterReason.PATTERN_MISMATCH);
-            }
+            // Copy of the returned list because we modify our copy.
+            traversalStateStack.add(new ArrayList<ReadonlyFile<?>>(listFiles(f)));
           } else if (!isQualifiyingFile(f)) {
             l.remove(0);
           } else
@@ -150,15 +151,8 @@ public class FileDocumentSnapshotRepository
 
     boolean isQualifiyingFile(ReadonlyFile<?> f) throws SnapshotRepositoryRuntimeException {
       try {
-        if (!f.isRegularFile() || !f.canRead()) {
-          //TODO : Add a separate Filter reason for scenarios where the file
-          //can't be read or its not a regular file
-          fileSink.add(f.getPath(), FilterReason.IO_EXCEPTION);
-          return false;
-        }
-
         TraversalContext traversalContext =
-          context.getTraversalContextManager().getTraversalContext();
+            traversalContextManager.getTraversalContext();
         if ((traversalContext != null)
             && (traversalContext.maxDocumentSize() < f.length())) {
           fileSink.add(f.getPath(), FilterReason.TOO_BIG);
@@ -191,7 +185,9 @@ public class FileDocumentSnapshotRepository
       ReadonlyFile<?> next = traversalStateStack.get(
           traversalStateStack.size() - 1).remove(0);
       return new FileDocumentSnapshot(next, checksumGenerator,
-          clock, fileSink, context);
+          clock,  traversalContextManager, mimeTypeFinder,
+          fileSink, credentials, fileSystemTypeRegistry,
+          pushAcls, markAllDcoumentsPublic);
     }
 
     /* @Override */

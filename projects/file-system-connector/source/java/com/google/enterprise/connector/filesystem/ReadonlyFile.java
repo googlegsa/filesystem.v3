@@ -14,8 +14,6 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.spi.RepositoryDocumentException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -39,9 +37,8 @@ public interface ReadonlyFile<T extends ReadonlyFile<T>> extends FileInfo {
    *
    * @return files and directories within this directory in sorted order.
    * @throws IOException if this is not a directory, or if it can't be read
-   * @throws DirectoryListingException if the user is not authorized to read
    */
-  public List<T> listFiles() throws IOException, DirectoryListingException, InsufficientAccessException;
+  public List<T> listFiles() throws IOException;
 
   /**
    * @return an input stream that reads this file.
@@ -74,13 +71,8 @@ public interface ReadonlyFile<T extends ReadonlyFile<T>> extends FileInfo {
   public long length() throws IOException;
 
   /**
-   * Returns true if this {@Link ReadonlyFile} supports authn
+   * Returns true if this {@Link ReadonlyFile} supports authorization
    * based on a specific associated {@link Credentials}.
    */
   public boolean supportsAuthn();
-  
-  /** Returns true if the file actually exists in the file system false otherwise
-   * @return true / false depending on whether the file exists or not.
-   */
-  public boolean exists() throws RepositoryDocumentException;
 }

@@ -42,18 +42,9 @@ public class JavaFileSystemType implements FileSystemType {
       throw new IllegalArgumentException("Invalid path " + path);
     }
     JavaReadonlyFile result = getFile(path, credentials);
-    if (!result.exists()) {
-      throw new NonExistentResourceException("Path doesn't exist: " + path);
-    }
     if (!result.canRead()) {
-      throw new InsufficientAccessException("User doesn't have access to the path: " + path);
+      throw new RepositoryDocumentException("failed to open file: " + path);
     }
     return result;
   }
-
-  /* @Override */
-  public boolean isUserPasswordRequired() {
-    return false;
-  }
-
 }

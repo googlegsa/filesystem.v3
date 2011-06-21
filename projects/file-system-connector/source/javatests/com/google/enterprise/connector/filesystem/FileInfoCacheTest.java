@@ -14,8 +14,8 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.util.BasicChecksumGenerator;
-import com.google.enterprise.connector.util.diffing.DocumentSnapshotRepositoryMonitor;
+import com.google.enterprise.connector.diffing.BasicChecksumGenerator;
+import com.google.enterprise.connector.diffing.DocumentSnapshotRepositoryMonitor;
 
 import junit.framework.TestCase;
 
@@ -113,10 +113,6 @@ public class FileInfoCacheTest extends TestCase {
 
     public boolean supportsAuthn() {
       return false;
-    }
-
-    public boolean exists() {
-      return true;
     }
   }
 

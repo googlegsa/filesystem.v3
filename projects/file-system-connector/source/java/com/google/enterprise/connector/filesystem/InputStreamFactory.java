@@ -29,5 +29,5 @@ public interface InputStreamFactory {
    *
    * @throws IOException
    */
-  public InputStream getInputStream() throws IOException;
+  InputStream getInputStream() throws IOException;
 }

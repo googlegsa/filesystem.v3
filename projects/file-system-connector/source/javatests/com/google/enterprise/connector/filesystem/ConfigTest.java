@@ -14,7 +14,7 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.util.diffing.testing.TestDirectoryManager;
+import com.google.enterprise.connector.diffing.TestDirectoryManager;
 
 import junit.framework.TestCase;
 
@@ -31,7 +31,7 @@ import java.util.Properties;
  */
 public class ConfigTest extends TestCase {
   private static final String CONFIG_DIR = "config/";
-  private static final String INSTANCE_CONFIG_FILE = CONFIG_DIR + "connectorDefaults.xml";
+  private static final String INSTANCE_CONFIG_FILE = CONFIG_DIR + "connectorInstance.xml";
   private HashMap<String, String> goodConfig;
 
   @Override

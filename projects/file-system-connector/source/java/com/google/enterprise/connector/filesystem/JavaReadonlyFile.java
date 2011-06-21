@@ -95,10 +95,10 @@ public class JavaReadonlyFile implements ReadonlyFile<JavaReadonlyFile> {
   }
 
   /* @Override */
-  public List<JavaReadonlyFile> listFiles() throws DirectoryListingException {
+  public List<JavaReadonlyFile> listFiles() throws IOException {
     File[] files = delegate.listFiles();
     if (files == null) {
-      throw new DirectoryListingException("failed to list files in " + getPath());
+      throw new IOException("failed to list files in " + getPath());
     }
     List<JavaReadonlyFile> result = new ArrayList<JavaReadonlyFile>(files.length);
     for (int k = 0; k < files.length; ++k) {
@@ -160,10 +160,5 @@ public class JavaReadonlyFile implements ReadonlyFile<JavaReadonlyFile> {
 
   public boolean acceptedBy(FilePatternMatcher matcher) {
     return matcher.acceptName(getPath());
-  }
-
-  /* @Override */
-  public boolean exists() {
-    return delegate.exists();
   }
 }

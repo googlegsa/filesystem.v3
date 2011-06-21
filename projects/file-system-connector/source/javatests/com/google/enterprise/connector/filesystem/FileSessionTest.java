@@ -14,20 +14,17 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.filesystem.FileDocumentHandle.DocumentContext;
-import com.google.enterprise.connector.filesystem.SmbAclBuilder.AceSecurityLevel;
+import com.google.enterprise.connector.diffing.ChangeQueue;
+import com.google.enterprise.connector.diffing.ChangeSource;
+import com.google.enterprise.connector.diffing.DeleteDocumentHandleFactory;
+import com.google.enterprise.connector.diffing.DiffingConnector;
+import com.google.enterprise.connector.diffing.DiffingConnectorTraversalManager;
+import com.google.enterprise.connector.diffing.FakeDocumentSnapshotRepositoryMonitorManager;
+import com.google.enterprise.connector.diffing.FakeTraversalContext;
+import com.google.enterprise.connector.diffing.TraversalContextManager;
 import com.google.enterprise.connector.spi.RepositoryException;
 import com.google.enterprise.connector.spi.Session;
 import com.google.enterprise.connector.spi.TraversalContext;
-import com.google.enterprise.connector.util.diffing.ChangeQueue;
-import com.google.enterprise.connector.util.diffing.ChangeQueue.DefaultCrawlActivityLogger;
-import com.google.enterprise.connector.util.diffing.ChangeSource;
-import com.google.enterprise.connector.util.diffing.DeleteDocumentHandleFactory;
-import com.google.enterprise.connector.util.diffing.DiffingConnector;
-import com.google.enterprise.connector.util.diffing.DiffingConnectorTraversalManager;
-import com.google.enterprise.connector.util.diffing.TraversalContextManager;
-import com.google.enterprise.connector.util.diffing.testing.FakeDocumentSnapshotRepositoryMonitorManager;
-import com.google.enterprise.connector.util.diffing.testing.FakeTraversalContext;
 
 import junit.framework.TestCase;
 
@@ -43,19 +40,18 @@ public class FileSessionTest extends TestCase {
 
   @Override
   public void setUp() throws IOException {
-    changes = new ChangeQueue(100, 10, new DefaultCrawlActivityLogger());
+    changes = new ChangeQueue(100, 10);
     FileSystemTypeRegistry fileSystemTypeRegistry =
       new FileSystemTypeRegistry(Arrays.asList(new JavaFileSystemType(),
-          new SmbFileSystemType(false,false, AceSecurityLevel.FILEANDSHARE.name())));
+          new SmbFileSystemType(false)));
     authz = new FileAuthorizationManager(new PathParser(
         fileSystemTypeRegistry));
     TraversalContext traversalContext = new FakeTraversalContext();
     TraversalContextManager tcm = new TraversalContextManager();
     tcm.setTraversalContext(traversalContext);
-    DocumentContext context = new DocumentContext(fileSystemTypeRegistry, false,
-        true, null, null,null, new MimeTypeFinder(), tcm);
     FileDocumentHandleFactory clientFactory = new FileDocumentHandleFactory(
-        context);
+        fileSystemTypeRegistry, false, true, null, null, null,
+        new MimeTypeFinder(), tcm);
     monitorManager = new FakeDocumentSnapshotRepositoryMonitorManager(changes,
         this, new DeleteDocumentHandleFactory(), clientFactory);
     session = new DiffingConnector(authz, monitorManager, tcm);

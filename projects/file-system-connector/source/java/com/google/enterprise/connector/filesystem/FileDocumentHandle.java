@@ -14,10 +14,10 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import com.google.enterprise.connector.util.diffing.DocIdUtil;
-import com.google.enterprise.connector.util.diffing.DocumentHandle;
-import com.google.enterprise.connector.util.diffing.GenericDocument;
-import com.google.enterprise.connector.util.diffing.TraversalContextManager;
+import com.google.enterprise.connector.diffing.DocIdUtil;
+import com.google.enterprise.connector.diffing.DocumentHandle;
+import com.google.enterprise.connector.diffing.GenericDocument;
+import com.google.enterprise.connector.diffing.TraversalContextManager;
 import com.google.enterprise.connector.spi.Document;
 import com.google.enterprise.connector.spi.RepositoryDocumentException;
 import com.google.enterprise.connector.spi.RepositoryException;
@@ -39,12 +39,6 @@ public class FileDocumentHandle implements DocumentHandle {
   static enum Field {
     FILESYS, PATH, IS_DELETE
   }
-  
-  static final String FILESYSTEM_TYPE_JSON_TAG = "fstype";
-  static final String PATH_JSON_TAG = "path";
-  static final String ACTION_JSON_TAG = "action";
-  static final String DELETE_FILE_ACTION = "DELETE_FILE";
-  static final String DELETE_DIR_ACTION = "DELETE_DIR";
 
   private static final Logger LOG =
       Logger.getLogger(FileDocumentHandle.class.getName());
@@ -135,8 +129,7 @@ public class FileDocumentHandle implements DocumentHandle {
     result.setProperty(SpiConstants.PROPNAME_MIMETYPE, mimeType);
     try {
       DateTime lastModified = new DateTime(file.getLastModified());
-      result.setProperty(SpiConstants.PROPNAME_LASTMODIFIED,
-          lastModified.toCalendar(null /* null means default locale */));
+      result.setProperty(SpiConstants.PROPNAME_LASTMODIFIED, lastModified);
     } catch (IOException e) {
       LOG.log(Level.WARNING, "failed to get last-modified time for file: "
           + file.getPath(), e);
@@ -159,27 +152,22 @@ public class FileDocumentHandle implements DocumentHandle {
       MimeTypeFinder mimeTypeFinder = context.getMimeTypeFinder();
       return mimeTypeFinder.find(
           traversalContext,
-              file.getPath(), new FileInfoInputStreamFactory(file));
+          file.getPath(), new FileInfoInputStreamFactory(file));
     } catch (IOException ioe) {
       throw new RepositoryDocumentException("Unable to get mime type for file "
           + file.getPath(), ioe);
     }
   }
 
-  private void fetchAcl(GenericDocument document, ReadonlyFile<?> file) throws RepositoryException {
-    if (context.markAllDocumentsPublic) {
-      LOG.finest("public flag is true so setting the PROPNAME_ISPUBLIC to TRUE");
-      document.setProperty(SpiConstants.PROPNAME_ISPUBLIC, Boolean.TRUE.toString());
-    } else {
-      LOG.finest("public flag is false so setting the PROPNAME_ISPUBLIC to FALSE");
-      document.setProperty(SpiConstants.PROPNAME_ISPUBLIC, Boolean.FALSE.toString());
-      if (context.pushAcls) {
-        LOG.finest("pushAcls flag is true so adding ACL to the document");
-        Acl acl = getAcl(file);
-        if (acl.isDeterminate()) {
-          document.setProperty(SpiConstants.PROPNAME_ACLUSERS, acl.getUsers());
-          document.setProperty(SpiConstants.PROPNAME_ACLGROUPS, acl.getGroups());
-        }
+  private void fetchAcl(GenericDocument document, ReadonlyFile<?> file)
+      throws RepositoryException {
+    Acl acl = getAcl(file);
+    if (!context.markAllDocumentsPublic && !acl.isPublic()) {
+      document.setProperty(SpiConstants.PROPNAME_ISPUBLIC,
+          Boolean.FALSE.toString());
+      if (context.pushAcls && acl.isDeterminate()) {
+        document.setProperty(SpiConstants.PROPNAME_ACLUSERS, acl.getUsers());
+        document.setProperty(SpiConstants.PROPNAME_ACLGROUPS, acl.getGroups());
       }
     }
   }
@@ -223,22 +211,10 @@ public class FileDocumentHandle implements DocumentHandle {
     private final MimeTypeFinder mimeTypeFinder;
     private final TraversalContextManager traversalContextManager;
 
-    /**
-     * This constructor is used only in test cases. 
-     */
     DocumentContext(FileSystemTypeRegistry fileSystemTypeRegistry,
         boolean pushAcls, boolean markAllDocumentsPublic,
-        String domain, String userName, String password,
-        MimeTypeFinder mimeTypeFinder, 
-        TraversalContextManager traversalContextManager) {
-      this(fileSystemTypeRegistry, pushAcls, markAllDocumentsPublic,
-          new Credentials(domain, userName, password),
-          mimeTypeFinder, traversalContextManager);
-    }
-
-    DocumentContext(FileSystemTypeRegistry fileSystemTypeRegistry,
-        boolean pushAcls, boolean markAllDocumentsPublic,
-        Credentials credentials, MimeTypeFinder mimeTypeFinder,
+        Credentials credentials,
+        MimeTypeFinder mimeTypeFinder,
         TraversalContextManager traversalContextManager) {
       if (pushAcls && markAllDocumentsPublic) {
         throw new IllegalArgumentException(
@@ -251,64 +227,24 @@ public class FileDocumentHandle implements DocumentHandle {
       this.mimeTypeFinder = mimeTypeFinder;
       this.traversalContextManager = traversalContextManager;
     }
-    
-    /**
-     * This constructor is used to instantiate the document context
-     * using properties configured in spring. 
-     */
-    DocumentContext(FileSystemTypeRegistry fileSystemTypeRegistry,
-        String domain, String userName, String password,
-            MimeTypeFinder mimeTypeFinder,
-                TraversalContextManager traversalContextManager,
-                    DocumentSecurityPropertyFetcher propertyFetcher) {
-      this(fileSystemTypeRegistry, propertyFetcher.isPushAclFlag(),
-          propertyFetcher.isMarkDocumentPublicFlag(),
-              new Credentials(domain, userName, password),
-                  mimeTypeFinder, traversalContextManager);
-    }
-  
-    
 
     public FileSystemTypeRegistry getFileSystemTypeRegistry() {
       return fileSystemTypeRegistry;
     }
-    
     public boolean isPushAcls() {
       return pushAcls;
     }
-    
     public boolean isMarkAllDocumentsPublic() {
       return markAllDocumentsPublic;
     }
-    
     public Credentials getCredentials() {
       return credentials;
     }
-    
     public MimeTypeFinder getMimeTypeFinder() {
       return mimeTypeFinder;
     }
-    
     public TraversalContextManager getTraversalContextManager() {
       return traversalContextManager;
     }
-  }
-  
-  /**
-   * Interface to retrieve the properties required by DocumentContext
-   */
-  static interface DocumentSecurityPropertyFetcher {
-    
-    /**
-     * Returns the markAllDocumentsPublic.
-     * @return Flag to decide whether or not to mark all documents as public.
-     */
-    boolean isMarkDocumentPublicFlag();
-    
-    /**
-     * Returns the pushAcls.
-     * @return Flag to decide whether or not to include ACL in the feed.
-     */
-    boolean isPushAclFlag();
   }
 }
