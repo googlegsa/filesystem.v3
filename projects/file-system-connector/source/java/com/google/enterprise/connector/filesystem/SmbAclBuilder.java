@@ -15,9 +15,6 @@
 package com.google.enterprise.connector.filesystem;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.enterprise.connector.spi.Principal;
 import com.google.enterprise.connector.spi.SpiConstants.CaseSensitivityType;
@@ -42,30 +39,6 @@ class SmbAclBuilder implements AclBuilder {
   private static final Logger LOGGER = Logger.getLogger(
       SmbAclBuilder.class.getName());
 
-  /** Returns true if the associated {@link ACE} is INHERIT_ONLY. */
-  @VisibleForTesting
-  static Predicate<ACE> isInheritOnlyAce = new Predicate<ACE>() {
-    public boolean apply(ACE ace) {
-      return ((ace.getFlags() & ACE.FLAGS_INHERIT_ONLY) ==
-              ACE.FLAGS_INHERIT_ONLY);
-    }
-  };
-
-  /** Returns true if the associated {@link ACE} is INHERITED. */
-  private static Predicate<ACE> isInheritedAce = new Predicate<ACE>() {
-    public boolean apply(ACE ace) {
-      return ((ace.getFlags() & ACE.FLAGS_INHERITED) == ACE.FLAGS_INHERITED);
-    }
-  };
-
-  /**
-   * Returns true if the associated {@link ACE} is explicit for this
-   * node (neither INHERIT_ONLY or INHERITED).
-   */
-  @VisibleForTesting
-  static Predicate<ACE> isDirectAce =
-      Predicates.not(Predicates.or(isInheritOnlyAce, isInheritedAce));
-
   private final SmbFile file;
 
   /**
@@ -89,30 +62,16 @@ class SmbAclBuilder implements AclBuilder {
   private final String localNamespace;
 
   /**
-   * The security ACEs for this file.
-   */
-  private final ACE[] securityAces;
-
-  /**
-   * True if this file has any inherited ACEs.
-   */
-  private final boolean hasInheritedAces;
-
-  /**
    * Creates an {@link SmbAclBuilder}.
    *
    * @param file the {@link SmbFile} whose {@link Acl} we build.
    * @param propertyFetcher Object containing the required properties.
    */
-  SmbAclBuilder(SmbFile file, AclProperties propertyFetcher)
-      throws IOException {
-    Preconditions.checkNotNull(file, "file may not be null");
-    Preconditions.checkNotNull(propertyFetcher,
-                               "propertyFetcher may not be null");
+  SmbAclBuilder(SmbFile file, AclProperties propertyFetcher) {
     this.file = file;
     this.globalNamespace = propertyFetcher.getGlobalNamespace();
     this.localNamespace = propertyFetcher.getLocalNamespace();
-    AceSecurityLevel securityLevel = AceSecurityLevel.getSecurityLevel(
+    AceSecurityLevel securityLevel = getSecurityLevel(
         propertyFetcher.getAceSecurityLevel());
     if (securityLevel == null) {
       LOGGER.warning("Incorrect value specified for aceSecurityLevel parameter; "
@@ -138,102 +97,58 @@ class SmbAclBuilder implements AclBuilder {
     } else {
       this.groupAclFormat = tempFormat;
     }
+  }
 
-    // Get the security ACEs on the file, if not already available.
-    // Also determines if any of those ACEs are inherited.
-    securityAces = file.getSecurity();
-    boolean hasInheritedAces = false;
-    if (securityAces != null) {
-      for (ACE ace : securityAces) {
-        if (isInheritedAce.apply(ace)) {
-          hasInheritedAces = true;
-          break;
-        }
-      }
-    }
-    this.hasInheritedAces = hasInheritedAces;
+  private static AceSecurityLevel getSecurityLevel(String level) {
+    return AceSecurityLevel.getSecurityLevel(level);
   }
 
   @Override
   public Acl getAcl() throws IOException {
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, "ACEs for {0}: {1}",
-                 new Object[] { file, Arrays.toString(securityAces)});
-    }
-
-    List<ACE> fileAllowAces = new ArrayList<ACE>();
+    ACE[] securityAces = file.getSecurity();
+    List<ACE> fileAces = new ArrayList<ACE>();
     List<ACE> fileDenyAces = new ArrayList<ACE>();
-    checkAndAddAces(securityAces, fileAllowAces, fileDenyAces,
-                    isDirectAce);
+    checkAndAddAces(securityAces, fileAces, fileDenyAces, true);
 
-    // If the file inherits any ACEs from its parent, explicitly add
-    // those that were INHERIT_ONLY (on the parent) to our ACEs.
-    if (hasInheritedAces) {
-      try {
-        String parent = file.getParent();
-        if (parent != null) {
-          NtlmPasswordAuthentication auth = 
-              (NtlmPasswordAuthentication) file.getPrincipal();
-          SmbFile parentFile = new SmbFile(parent, auth);
-          ACE[] parentsecurityAces = parentFile.getSecurity();
-          checkAndAddAces(parentsecurityAces, fileAllowAces, fileDenyAces,
-                          isInheritOnlyAce);
-        }
-      } catch (ClassCastException e) {
-        LOGGER.log(Level.FINEST,"ClassCastException while getting parent ACLs: "
-                   + e.getMessage());
-      } catch (SmbException e) {
-        LOGGER.warning("Failed to get parent ACL: " + e.getMessage());
-        LOGGER.log(Level.FINEST, "Got SmbException while getting parent ACLs",
-                   e);
+    try {
+      String parent = file.getParent();
+      if (parent != null) {
+        NtlmPasswordAuthentication auth = 
+            (NtlmPasswordAuthentication) file.getPrincipal();
+        SmbFile parentFile = new SmbFile(parent, auth);
+        ACE[] parentsecurityAces = parentFile.getSecurity();
+        checkAndAddParentInheritOnlyAces(parentsecurityAces, fileAces, 
+            fileDenyAces);
       }
+    } catch (ClassCastException e) {
+      LOGGER.log(Level.FINEST,"ClassCastException while getting parent ACLs: " 
+          + e.getMessage());
+    } catch (SmbException e) {
+      LOGGER.warning("Failed to get parent ACL: " + e.getMessage());
+      LOGGER.log(Level.FINEST, "Got SmbException while getting parent ACLs", e);
     }
 
-    Acl acl = getAclFromAceList(fileAllowAces, fileDenyAces);
-    LOGGER.log(Level.FINEST, "ACL for {0}: {1}", new Object[] { file, acl });
-    return acl;
+    return getAclFromAceList(fileAces, fileDenyAces);
   }
 
   @Override
   public Acl getInheritedAcl() throws IOException {
-    if (!hasInheritedAces) {
-      return null;
-    }
-
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, "ACEs for {0}: {1}",
-                 new Object[] { file, Arrays.toString(securityAces)});
-    }
-
+    ACE[] inheritedAces = file.getSecurity();
     List<ACE> fileAllowAces = new ArrayList<ACE>();
     List<ACE> fileDenyAces = new ArrayList<ACE>();
-    checkAndAddAces(securityAces, fileAllowAces, fileDenyAces,
-                    isInheritedAce);
-
-    Acl acl = getAclFromAceList(fileAllowAces, fileDenyAces);
-    LOGGER.log(Level.FINEST, "ACL for {0}: {1}", new Object[] { file, acl });
-    return acl;
+    checkAndAddAces(inheritedAces, fileAllowAces, fileDenyAces, false);
+    return getInheritedAclFromAceList(fileAllowAces, fileDenyAces);
   }
 
   @Override
   public Acl getShareAcl() throws IOException {
-    // getShareSecurity with true argument of SmbFile attempts to resolve
-    // the SIDs within each ACE form
-    ACE[] shareAces = file.getShareSecurity(true);
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, "Share ACEs for {0}: {1}",
-                 new Object[] { file, Arrays.toString(shareAces)});
-    }
-
-    List<ACE> fileAllowAces = new ArrayList<ACE>();
-    List<ACE> fileDenyAces = new ArrayList<ACE>();
-    checkAndAddAces(shareAces, fileAllowAces, fileDenyAces,
-                    isDirectAce);
-
-    Acl acl = getAclFromAceList(fileAllowAces, fileDenyAces);
-    LOGGER.log(Level.FINEST, "Share ACL for {0}: {1}",
-               new Object[] { file, acl });
-    return acl;
+      // getShareSecurity with true argument of SmbFile attempts to resolve
+      // the SIDs within each ACE form
+      ACE[] shareAces = file.getShareSecurity(true);
+      List<ACE> fileAllowAces = new ArrayList<ACE>();
+      List<ACE> fileDenyAces = new ArrayList<ACE>();
+      checkAndAddAces(shareAces, fileAllowAces, fileDenyAces, true);
+      return getAclFromAceList(fileAllowAces, fileDenyAces);
   }
 
   /*
@@ -250,6 +165,28 @@ class SmbAclBuilder implements AclBuilder {
     }
     for (ACE ace : denyAceList) {
       addAceToSet(denyusers, denygroups, ace);
+    }
+    return Acl.newAcl(users, groups, denyusers, denygroups);
+  }
+
+  /*
+   * returns inherited ACL from the list of ACEs
+   */
+  private Acl getInheritedAclFromAceList(
+      List<ACE> allowAceList, List<ACE> denyAceList) {
+    Set<Principal> users = new TreeSet<Principal>();
+    Set<Principal> groups = new TreeSet<Principal>();
+    Set<Principal> denyusers = new TreeSet<Principal>();
+    Set<Principal> denygroups = new TreeSet<Principal>();
+    for (ACE ace : allowAceList) {
+      if (isInheritedAce(ace.getFlags())) {
+        addAceToSet(users, groups, ace);
+      }
+    }
+    for (ACE ace : denyAceList) {
+      if (isInheritedAce(ace.getFlags())) {
+        addAceToSet(denyusers, denygroups, ace);
+      }
     }
     return Acl.newAcl(users, groups, denyusers, denygroups);
   }
@@ -303,26 +240,59 @@ class SmbAclBuilder implements AclBuilder {
   }
 
   /**
-   * Gets the Allow and Deny ACEs from the {@code securityAces} and
-   * adds them to the repective list if they pass the {@code predicate}.
+   * Gets the ACEs at either File or Share level depending on the boolean
+   * 'isShare' parameter and checks if there is a presence of a DENY ACE
+   * If it gets all the READ ACEs successfully, then it returns true otherwise
+   * false.
    *
    * @param securityAces
-   * @param aceList List where the allow ACEs are to be added.
-   * @param aceDenyList List where the deny ACEs are to be added.
-   * @param predicate decides whether to add the ACE or not.
+   * @param aceList List where the ACEs need to be added.
+   * @param aceDenyList List where the deny ACEs need to be added.
+   * @param skipInheritedAce if true skips adding inherited ACEs to the list
    * @throws IOException
    */
   @VisibleForTesting
   void checkAndAddAces(ACE[] securityAces, List<ACE> aceList,
-      List<ACE> aceDenyList, Predicate<ACE> predicate) throws IOException {
+      List<ACE> aceDenyList, boolean skipInheritedAce) throws IOException {
     if (securityAces == null) {
-      LOGGER.warning("Cannot process ACL because of null ACL on " + file);
+      LOGGER.warning("Cannot process ACL because of null ACL on "
+          + file.getURL());
       return;
     }
     for (ACE ace : securityAces) {
-      if (predicate.apply(ace)) {
-        checkAndAddAce(ace, aceList, aceDenyList);
+      if (skipInheritedAce && isInheritedAce(ace.getFlags())) {
+        LOGGER.finest("Filtering inherit only ACE " + ace + " for file " 
+            + file.getURL());
+        return;
       }
+      checkAndAddAce(ace, aceList, aceDenyList);
+    }
+  }
+
+  /**
+   * Adds parent inherit only aces, checks for various conditions on ACEs before
+   * adding them as valid READ ACEs.
+   *
+   * @param ace ACE to be checked and added.
+   * @param aceList List where the ACE needs to be added if it is a valid ACE
+   * @param aceDenyList List where the deny ACE needs to be added if it is a
+   * valid ACE
+   */
+  @VisibleForTesting
+  void checkAndAddParentInheritOnlyAces(ACE[] securityAces,
+      List<ACE> aceList, List<ACE> aceDenyList) {
+    if (securityAces == null) {
+      LOGGER.warning("Cannot process ACL because of null ACL on "
+          + file.getURL());
+      return;
+    }
+    for (ACE ace : securityAces) {
+      if (!isInheritOnlyAce(ace.getFlags())) {
+        LOGGER.finest("Filtering inherit only ACE " + ace + " for file "
+            + file.getURL());
+        continue;
+      }
+      checkAndAddAce(ace, aceList, aceDenyList);
     }
   }
 
@@ -339,30 +309,54 @@ class SmbAclBuilder implements AclBuilder {
     SID sid = ace.getSID();
     if (!isSupportedWindowsSid(sid)) {
       if (!isSupportedSidType(sid.getType())) {
-        LOGGER.log(Level.FINEST, "Filtering unsupported ACE {0} for file {1}",
-                   new Object[] { ace, file });
+        LOGGER.finest("Filtering unsupported ACE " + ace + " for file "
+            + file.getURL());
         return;
       }
       if (isBuiltin(sid)) {
-        LOGGER.log(Level.FINEST, "Filtering BUILTIN ACE {0} for file {1}",
-                   new Object[] { ace, file });
+        LOGGER.finest("Filtering BUILTIN ACE " + ace + " for file "
+            + file.getURL());
         return;
       }
     }
     String aclEntry = sid.toDisplayString();
     if (sid.toString().equals(aclEntry)) {
-      LOGGER.log(Level.FINEST, "Filtering unresolved ACE {0} for file {1}",
-                 new Object[] { ace, file });
+      LOGGER.finest("Filtering unresolved ACE " + ace + " for file "
+          + file.getURL());
       return;
     }
     if (!isReadAce(ace.getAccessMask())) {
-      LOGGER.log(Level.FINEST, "Filtering non-read ACE {0} for file {1}",
-                 new Object[] { ace, file });
+      LOGGER.finest("Filtering non-read ACE " + ace + " for file "
+          + file.getURL());
       return;
     }
-    LOGGER.log(Level.FINEST, "Adding read ACE {0} for file {1}",
-               new Object[] { ace, file });
+    LOGGER.finest("Adding read ACE " + ace + " for file " + file.getURL());
     (ace.isAllow() ? aceList : aceDenyList).add(ace);
+  }
+
+  /**
+   * Returns true if the passed in flags indicate the associated {@link ACE}
+   * is INHERIT_ONLY.
+   */
+  private boolean isInheritOnlyAce(int aceFlags) {
+    return ((aceFlags & ACE.FLAGS_INHERIT_ONLY) == ACE.FLAGS_INHERIT_ONLY);
+  }
+
+  /**
+   * Returns true if the passed in flags indicate the associated {@link ACE}
+   * is INHERITED.
+   */
+  private boolean isInheritedOnlyAce(int aceFlags) {
+    return (((aceFlags & ACE.FLAGS_INHERITED) == ACE.FLAGS_INHERITED));
+  }
+
+  /**
+   * Returns true if the passed in flags indicate the associated {@link ACE}
+   * is either INHERIT_ONLY or INHERITED.
+   */
+  private boolean isInheritedAce(int aceFlags) {
+    return (((aceFlags & ACE.FLAGS_INHERIT_ONLY) == ACE.FLAGS_INHERIT_ONLY) 
+        || ((aceFlags & ACE.FLAGS_INHERITED) == ACE.FLAGS_INHERITED));
   }
 
   /**
@@ -379,7 +373,8 @@ class SmbAclBuilder implements AclBuilder {
    * permission.
    */
   private boolean isReadAce(int accessMask) {
-    return (accessMask & READ_ACCESS_MASK) == READ_ACCESS_MASK;
+    boolean result = (accessMask & READ_ACCESS_MASK) == READ_ACCESS_MASK;
+    return result;
   }
 
   /**
@@ -409,22 +404,22 @@ class SmbAclBuilder implements AclBuilder {
   /**
    * {@link String} representations of {@link SID} objects that qualify for
    * inclusion in an ACL regardless of the value returned by
-   * {@link #isSupportedSidType(int type)} or by {@link #isBuiltin(SID)}.
+   * {@link SID#getType}
+   * or by {@link #isBuiltin(SID)}.
    */
   private static final Set<String> SUPPORTED_WINDOWS_SIDS =
       new HashSet<String>(Arrays.asList(
           "S-1-5-32-544",  // Administrators
-          EVERYONE_SID,    // Everyone
+          EVERYONE_SID,       // Everyone
           "S-1-5-32-545",  // Users
-          "S-1-5-32-546",  // Guests
-          "S-1-5-4",       // NT AUTHORITY\INTERACTIVE   
-          "S-1-5-11"       // NT AUTHORITY\Authenticated Users
+          "S-1-5-32-546"   // Guests
       ));
 
   /**
-   * Returns true if the supplied {@link SID} qualifies for inclusion in an ACL,
-   * regardless of the value returned by {@link #isSupportedSidType(int type)}
-   * or by {@link #isBuiltin(SID)}.
+   * Returns true if the provided {@link SID} can qualify for inclusion in an
+   * ACL
+   * regardless of the value returned by {@link SID#getType} or by
+   * {@link #isBuiltin(SID)}.
    */
   private final boolean isSupportedWindowsSid(SID sid) {
     return SUPPORTED_WINDOWS_SIDS.contains(sid.toString());
@@ -443,7 +438,11 @@ class SmbAclBuilder implements AclBuilder {
    * {@link SID#SID_TYPE_ALIAS} and domain {@link #BUILTIN_DOMAIN_NAME}.
    */
   private boolean isBuiltin(SID sid) {
-    return (sid.getType() == SID.SID_TYPE_ALIAS &&
-            BUILTIN_DOMAIN_NAME.equals(sid.getDomainName()));
+    if (sid.getType() == SID.SID_TYPE_ALIAS && BUILTIN_DOMAIN_NAME.equals(
+            sid.getDomainName())) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }

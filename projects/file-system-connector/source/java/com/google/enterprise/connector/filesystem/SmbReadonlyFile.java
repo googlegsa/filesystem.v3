@@ -290,7 +290,7 @@ public class SmbReadonlyFile
   }
 
   @VisibleForTesting
-  protected synchronized AclBuilder getAclBuilder() throws IOException {
+  protected synchronized AclBuilder getAclBuilder() {
     if (aclBuilder == null) {
       if (smbPropertyFetcher.supportsInheritedAcls()) {
         aclBuilder = new SmbAclBuilder(delegate, smbPropertyFetcher);

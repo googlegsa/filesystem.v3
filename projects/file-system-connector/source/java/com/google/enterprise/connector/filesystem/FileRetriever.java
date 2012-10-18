@@ -73,8 +73,7 @@ class FileRetriever implements Retriever, TraversalContextAware {
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.finest("Retrieving meta-data for " + docid);
     }
-    ReadonlyFile<?> file = getFile(docid);
-    return new FileDocument(file, context, getRoot(file));
+    return new FileDocument(getFile(docid), context);
   }
 
   private ReadonlyFile<?> getFile(String docid) throws RepositoryException {
@@ -111,7 +110,13 @@ class FileRetriever implements Retriever, TraversalContextAware {
     // by decreasing length of pathname, so look for the longest startpath that
     // matches our file's pathname.
     String pathName = file.getPath();
-    String startPath = getStartPath(pathName);
+    String startPath = null;
+    for (String path : context.getStartPaths()) {
+      if (pathName.startsWith(path)) {
+        startPath = path;
+        break;
+      }
+    }
 
     // No match, not a file we care about.
     if (startPath == null) {
@@ -142,29 +147,5 @@ class FileRetriever implements Retriever, TraversalContextAware {
       pathName = file.getPath();
     }
     return true;
-  }
-
-  /**
-   * Returns the ReadonlyFile root under which this file resides, or null
-   * if the file does not appear to reside under any of our startpaths.
-   */
-  private ReadonlyFile<?> getRoot(ReadonlyFile<?> file)
-      throws RepositoryException {
-    String startPath = getStartPath(file.getPath());
-    return (startPath == null) ? null :
-        file.getFileSystemType().getFile(startPath, context.getCredentials());
-  }
-
-  /**
-   * Returns the startpath under which this file resides, or null
-   * if the file does not appear to reside under any of our startpaths.
-   */
-  private String getStartPath(String pathName) {
-    for (String path : context.getStartPaths()) {
-      if (pathName.startsWith(path)) {
-        return path;
-      }
-    }
-    return null;
   }
 }

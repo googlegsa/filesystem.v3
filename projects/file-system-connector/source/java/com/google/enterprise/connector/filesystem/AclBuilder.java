@@ -185,8 +185,7 @@ interface AclBuilder {
 
   /**
    * Returns inherited ACL, doesn't contain file level ACLs.
-   * Returns null if inherited ACLs are not supported, or the
-   * file has no inherited ACEs.
+   * Returns null if inherited ACLs are not supported.
    */
   public Acl getInheritedAcl() throws IOException;
 

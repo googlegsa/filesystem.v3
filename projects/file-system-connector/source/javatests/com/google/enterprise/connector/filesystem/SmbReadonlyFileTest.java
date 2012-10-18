@@ -294,11 +294,11 @@ public class SmbReadonlyFileTest extends MockReadonlyFileTestAbstract
 
   /* Rudimentary ACL tests. Leaving the heavy lifting for SmbAclBuilderTest. */
 
-  public void testGetAclBuilder() throws IOException {
+  public void testGetAclBuilder() {
     assertTrue(readonlyFile1.getAclBuilder() instanceof SmbAclBuilder);
   }
 
-  public void testGetLegacyAclBuilder() throws IOException {
+  public void testGetLegacyAclBuilder() {
     propertyFetcher.setSupportsInheritedAcls(false);
     assertTrue(readonlyFile1.getAclBuilder() instanceof LegacySmbAclBuilder);
   }
