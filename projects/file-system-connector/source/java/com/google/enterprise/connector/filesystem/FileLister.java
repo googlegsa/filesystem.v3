@@ -446,10 +446,7 @@ class FileLister implements Lister, TraversalContextAware,
               break;	// No more files.
             }          
             path = file.getPath();
-            for (Document document : 
-                 FileDocument.getDocuments(file, context, root)) {
-              documentAcceptor.take(document);
-            }
+            documentAcceptor.take(new FileDocument(file, context, root));
           } catch (RepositoryDocumentException rde) {
             LOGGER.log(Level.WARNING, "Failed to feed document " + path, rde);
           } catch (RepositoryException e) {

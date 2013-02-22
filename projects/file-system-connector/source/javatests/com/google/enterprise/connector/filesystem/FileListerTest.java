@@ -85,12 +85,11 @@ public class FileListerTest extends TestCase {
       List<String> excludePatterns, TraversalSchedule traversalSchedule,
       boolean pushAcls) throws RepositoryException {
     runLister(newLister(root, includePatterns, excludePatterns,
-                        traversalSchedule, pushAcls), pushAcls);
+                        traversalSchedule, pushAcls));
   }
 
   /** Run the Lister and validate the results. */
-  private void runLister(final FileLister lister, final boolean pushAcls)
-      throws RepositoryException {
+  private void runLister(final FileLister lister) throws RepositoryException {
     // Let the Lister run for 1 second, then shut it down.
     Timer timer = new Timer("Shutdown Lister");
     TimerTask timerTask = new TimerTask() {
@@ -113,17 +112,7 @@ public class FileListerTest extends TestCase {
     Iterator<FileDocument> it = documentAcceptor.iterator();
     for (MockReadonlyFile file : builder.getExpected()) {
       assertTrue(message, it.hasNext());
-      if (file.isDirectory() && pushAcls) {
-        assertEquals(message, 
-            FileDocument.CONTAINER_INHERIT_ACL_PREFIX + file.getPath(),
-            it.next().getDocumentId());
-        assertTrue(message, it.hasNext());
-        assertEquals(message,
-            FileDocument.FILE_INHERIT_ACL_PREFIX + file.getPath(),
-            it.next().getDocumentId());
-      } else {
-        assertEquals(message, file.getPath(), it.next().getDocumentId());
-      }
+      assertEquals(message, file.getPath(), it.next().getDocumentId());
     }
     assertFalse(message, it.hasNext());
   }
@@ -216,7 +205,7 @@ public class FileListerTest extends TestCase {
         EXCLUDE_NONE_PATTERNS, TRAVERSAL_SCHEDULE, PUSH_ACLS);
 
     // Run the lister and verify it feed the documents.
-    runLister(lister, PUSH_ACLS);
+    runLister(lister);
 
     // Shutdown has already been called but we should be able to call it again.
     assertTrue(lister.isShutdown());
@@ -224,7 +213,7 @@ public class FileListerTest extends TestCase {
 
     // Now clear the results, and run it again.
     documentAcceptor.clear();
-    runLister(lister, PUSH_ACLS);
+    runLister(lister);
   }
 
   public void testRootShareAcl() throws Exception {
