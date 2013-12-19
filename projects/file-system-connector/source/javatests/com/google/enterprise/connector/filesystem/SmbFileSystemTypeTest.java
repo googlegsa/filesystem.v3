@@ -14,13 +14,6 @@
 
 package com.google.enterprise.connector.filesystem;
 
-import static org.easymock.EasyMock.anyInt;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.createNiceMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
-import static org.easymock.EasyMock.replay;
-
 import com.google.enterprise.connector.spi.DocumentAccessException;
 import com.google.enterprise.connector.spi.DocumentNotFoundException;
 import com.google.enterprise.connector.spi.RepositoryDocumentException;
@@ -28,8 +21,15 @@ import com.google.enterprise.connector.spi.RepositoryDocumentException;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 
-import java.io.IOException;
+import static org.easymock.EasyMock.anyInt;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createNiceMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.replay;
+
 import java.io.InputStream;
+import java.io.IOException;
 
 /**
  */

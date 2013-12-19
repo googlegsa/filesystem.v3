@@ -14,6 +14,7 @@
 
 package com.google.enterprise.connector.filesystem;
 
+import com.google.enterprise.connector.spi.Principal;
 import com.google.enterprise.connector.spi.SpiConstants.PrincipalType;
 
 import java.io.IOException;
@@ -267,13 +268,5 @@ interface AclBuilder {
      * @return the local namespace
      */
     String getLocalNamespace();
-
-    /**
-     * Returns {@code true} if Documents with missing or broken ACLs
-     * should fall back to use connector Authorization, or {@code false}
-     * if the Document should be skipped. The default behavior is to skip
-     * the document.
-     */
-    boolean useAuthzOnAclError();
   }
 }

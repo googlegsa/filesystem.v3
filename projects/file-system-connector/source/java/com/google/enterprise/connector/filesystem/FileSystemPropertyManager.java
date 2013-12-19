@@ -54,12 +54,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   private boolean supportsInheritedAcls;
 
   /**
-   * Flag to indicate whether files whose ACLs cannot be determined should
-   * resort to late binding (using Connector Authorization), or be skipped.
-   */
-  private boolean useAuthzOnAclError;
-
-  /**
    * Represents the flag to reset last access time
    * for SMB files.
    */
@@ -103,7 +97,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the aceSecurityLevel
    */
-  @Override
   public String getAceSecurityLevel() {
     return aceSecurityLevel;
   }
@@ -118,7 +111,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the lastAccessResetFlagForSmb
    */
-  @Override
   public boolean isLastAccessResetFlagForSmb() {
     return lastAccessResetFlagForSmb;
   }
@@ -133,7 +125,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the lastAccessResetFlagForLocalWindows
    */
-  @Override
   public boolean isLastAccessResetFlagForLocalWindows() {
     return lastAccessResetFlagForLocalWindows;
   }
@@ -149,7 +140,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the markDocumentPublicFlag
    */
-  @Override
   public boolean isMarkAllDocumentsPublic() {
     return markDocumentPublicFlag;
   }
@@ -169,7 +159,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the pushAclFlag
    */
-  @Override
   public boolean isPushAcls() {
     return pushAclFlag;
   }
@@ -194,7 +183,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
    *
    * @return {@code true} if Documents may include enhanced ACL support
    */
-  @Override
   public boolean supportsInheritedAcls() {
     return supportsInheritedAcls;
   }
@@ -207,27 +195,8 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   }
 
   /**
-   * Returns {@code true} if Documents with missing or broken ACLs
-   * should fall back to use connector Authorization, or {@code false}
-   * if the Document should be skipped. The default behavior is to skip
-   * the document.
-   */
-  @Override
-  public boolean useAuthzOnAclError() {
-    return useAuthzOnAclError;
-  }
-
-  /**
-   * @param useAuthzOnAclError the useAuthzOnAclError flag to set
-   */
-  public void setUseAuthzOnAclError(boolean useAuthzOnAclError) {
-    this.useAuthzOnAclError = useAuthzOnAclError;
-  }
-
-  /**
    * Returns the ACE format for groups
    */
-  @Override
   public String getGroupAclFormat() {
     return groupAclFormat;
   }
@@ -235,7 +204,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * Returns the ACE format for users.
    */
-  @Override
   public String getUserAclFormat() {
     return userAclFormat;
   }
@@ -257,7 +225,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the global namespace
    */
-  @Override
   public String getGlobalNamespace() {
     return globalNamespace;
   }
@@ -265,7 +232,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the local namespace
    */
-  @Override
   public String getLocalNamespace() {
     return localNamespace;
   }

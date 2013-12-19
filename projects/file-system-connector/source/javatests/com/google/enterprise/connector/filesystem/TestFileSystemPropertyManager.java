@@ -36,6 +36,5 @@ public class TestFileSystemPropertyManager extends FileSystemPropertyManager {
     super.setIfModifiedSinceCushionMinutes(60);
     super.setThreadPoolSize(10);
     super.setSupportsInheritedAcls(true);
-    super.setUseAuthzOnAclError(false);
   }
 }

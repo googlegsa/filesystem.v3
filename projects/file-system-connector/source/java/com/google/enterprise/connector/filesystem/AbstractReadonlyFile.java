@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -84,7 +85,6 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
    *          operation
    */
   protected void detectGeneralErrors(IOException e) throws RepositoryException {
-    detectServerDown(e);
   }
 
   @Override
@@ -128,7 +128,7 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
       return delegate.canRead();
     } catch (IOException e) {
       detectGeneralErrors(e);
-      throw new RepositoryDocumentException(e);
+      return false;
     }
   }
 
@@ -138,7 +138,7 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
       return delegate.isHidden();
     } catch (IOException e) {
       detectGeneralErrors(e);
-      throw new RepositoryDocumentException(e);
+      return false;
     }
   }
 
@@ -148,7 +148,7 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
       return delegate.isDirectory();
     } catch (IOException e) {
       detectGeneralErrors(e);
-      throw new RepositoryDocumentException(e);
+      return false;
     }
   }
 
@@ -158,7 +158,7 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
       return delegate.isFile();
     } catch (IOException e) {
       detectGeneralErrors(e);
-      throw new RepositoryDocumentException(e);
+      return false;
     }
   }
 
@@ -173,18 +173,6 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
           "Failed to get last modified time for " + getPath(), e);
     }
     return lastModified;
-  }
-
-  @Override
-  public boolean isModifiedSince(long time) throws RepositoryException {
-    try {
-      long lastModified = delegate.lastModified();
-      return (lastModified > 0L) ? (lastModified >= time) : true;
-    } catch (IOException e) {
-      detectGeneralErrors(e);
-      throw new RepositoryDocumentException(
-          "Failed to get last modified time for " + getPath(), e);
-    }
   }
 
   @Override

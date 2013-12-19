@@ -13,12 +13,15 @@
 // limitations under the License.
 package com.google.enterprise.connector.filesystem;
 
+import com.google.common.collect.Lists;
 import com.google.enterprise.connector.filesystem.MockDirectoryBuilder.ConfigureFile;
 import com.google.enterprise.connector.spi.SimpleTraversalContext;
+import com.google.enterprise.connector.spi.TraversalContext;
 import com.google.enterprise.connector.util.MimeTypeDetector;
 
 import junit.framework.TestCase;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -44,46 +47,8 @@ public class FileIteratorTest extends TestCase {
     propertyManager = new TestFileSystemPropertyManager();
   }
 
-  /** Test FileIterator.pushBack() */
-  public void testPushBack() throws Exception {
-    MockDirectoryBuilder builder = new MockDirectoryBuilder();
-    MockReadonlyFile root = builder.addDir(
-        MockDirectoryBuilder.CONFIGURE_FILE_ALL, null,
-        "/foo/bar", "f1", "f2");
-
-    @SuppressWarnings("unchecked") DocumentContext context =
-        new DocumentContext(null, null, null, mimeTypeDetector, propertyManager,
-                            null, Collections.singletonList("/"),
-                            (List<String>) Collections.EMPTY_LIST);
-    context.setTraversalContext(traversalContext);
-
-    FileIterator it = new FileIterator(root, context, 0L, false);
-
-    ReadonlyFile<?> file = it.next();
-    assertNotNull(file);
-    assertEquals("f1", file.getName());
-    it.pushBack(file);
-
-    file = it.next();
-    assertNotNull(file);
-    assertEquals("f1", file.getName());
-
-    file = it.next();
-    assertNotNull(file);
-    assertEquals("f2", file.getName());
-
-    assertNull(it.next());
-    it.pushBack(file);
-
-    file = it.next();
-    assertNotNull(file);
-    assertEquals("f2", file.getName());
-    assertNull(it.next());
-  }        
-
   public void testFullTraversal() throws Exception {
     ConfigureFile configureFile = new ConfigureFile() {
-        @Override
         public boolean configure(MockReadonlyFile file) {
           if (file.getName().contains("newer")) {
             file.setLastModified(NEWER);
@@ -104,7 +69,6 @@ public class FileIteratorTest extends TestCase {
   /** Only return newer files, plus all directories. */
   public void testIncrementalTraversal() throws Exception {
     ConfigureFile configureFile = new ConfigureFile() {
-        @Override
         public boolean configure(MockReadonlyFile file) throws Exception {
           if (file.getName().contains("newer")) {
             file.setLastModified(NEWER);
@@ -123,7 +87,6 @@ public class FileIteratorTest extends TestCase {
   /** If no newer files, still return all directories. */
   public void testIncrementalTraversalNoNewestFiles() throws Exception {
     ConfigureFile configureFile = new ConfigureFile() {
-        @Override
         public boolean configure(MockReadonlyFile file) throws Exception {
           if (file.getName().contains("newer")) {
             file.setLastModified(NEWER);
@@ -152,7 +115,6 @@ public class FileIteratorTest extends TestCase {
 
   private void noDirectoriesTest() throws Exception {
     ConfigureFile configureFile = new ConfigureFile() {
-        @Override
         public boolean configure(MockReadonlyFile file) throws Exception {
           return !file.isDirectory();
         }

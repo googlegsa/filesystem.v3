@@ -145,6 +145,8 @@ public class SmbReadonlyFile
     LOG.finest("server down variables:" + smbe.getNtStatus() + rootCauseString
         + " " + smbe.getMessage());
 
+    /* TODO (bmj): Restore this once FileLister.Traverser is able to retry
+       failed documents after transient communication failures.
     // All pipe instances are busy.
     if (SmbException.NT_STATUS_INSTANCE_NOT_AVAILABLE == smbe.getNtStatus()
         || SmbException.NT_STATUS_PIPE_NOT_AVAILABLE == smbe.getNtStatus()
@@ -158,6 +160,7 @@ public class SmbReadonlyFile
         ("" + smbe).contains("timedout waiting for response")) {
       throw new RepositoryException("Server busy", smbe);
     }
+    */
 
     // Cannot connect to server.
     if (badCommunication && noTransport &&
@@ -278,14 +281,14 @@ public class SmbReadonlyFile
   private Acl processIOException(IOException e, String aclType) 
       throws IOException, RepositoryException {
     detectServerDown(e);    
-    LOG.warning("Failed to get " + aclType + " ACL: " + e.getMessage());
-    if (LOG.isLoggable(Level.FINEST)) {
-      LOG.log(Level.FINEST, "Got Exception while getting " + aclType
-              + " ACL for " + this.getPath(), e);
-    }
-    if (e instanceof SmbException && smbPropertyFetcher.useAuthzOnAclError()) {
+    if (e instanceof SmbException) {
+      LOG.warning("Failed to get " + aclType + " ACL: " + e.getMessage());
+      LOG.log(Level.FINEST, "Got SmbException while getting " + aclType
+              + " ACL", e);
       return Acl.USE_HEAD_REQUEST;
     } else {
+      LOG.log(Level.WARNING, "Cannot process ACL: Got IOException while "
+              + "getting " + aclType + " ACL for " + this.getPath(), e);
       throw e;
     }
   }
@@ -298,8 +301,8 @@ public class SmbReadonlyFile
   }
 
   /**
-   * Returns true if either the create timestamp or the last modified
-   * timestamp of the file is newer than the supplied time.
+   * Returns the newer of either the create timestamp or the last modified
+   * timestamp of the file.
    * <p>
    * According to <a href="http://support.microsoft.com/kb/299648">this
    * Microsoft document</a>, moving or renaming a file within the same file
@@ -309,16 +312,8 @@ public class SmbReadonlyFile
    * timestamp, but does not alter the last modified timestamp.
    */
   @Override
-  public boolean isModifiedSince(long time) throws RepositoryException {
-    try {
-      long lastModified =
-          Math.max(delegate.lastModified(), delegate.createTime());
-      return (lastModified > 0L) ? (lastModified >= time) : true;
-    } catch (IOException e) {
-      detectServerDown(e);
-      throw new RepositoryDocumentException(
-          "Failed to get last modified time for " + getPath(), e);
-    }
+  public long getLastModified() throws SmbException {
+    return Math.max(delegate.lastModified(), delegate.createTime());
   }
 
   @VisibleForTesting

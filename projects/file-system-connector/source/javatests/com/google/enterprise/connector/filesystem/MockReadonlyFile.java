@@ -14,7 +14,6 @@
 package com.google.enterprise.connector.filesystem;
 
 import com.google.enterprise.connector.spi.DocumentAccessException;
-import com.google.enterprise.connector.spi.RepositoryDocumentException;
 import com.google.enterprise.connector.spi.RepositoryException;
 import com.google.enterprise.connector.util.Clock;
 import com.google.enterprise.connector.util.SystemClock;
@@ -259,7 +258,7 @@ public class MockReadonlyFile implements ReadonlyFile<MockReadonlyFile> {
   }
 
   @Override
-  public boolean hasInheritedAcls() throws RepositoryException, IOException {
+    public boolean hasInheritedAcls() throws RepositoryException, IOException {
     return (inheritedAcl != null) || (containerInheritAcl != null)
            || (fileInheritAcl != null);
   }
@@ -366,17 +365,6 @@ public class MockReadonlyFile implements ReadonlyFile<MockReadonlyFile> {
     return lastModified;
   }
 
-  @Override
-  public boolean isModifiedSince(long time) throws RepositoryException {
-    try {
-      long lastModified = getLastModified();
-      return (lastModified > 0) ? (lastModified >= time) : true;
-    } catch (IOException e) {
-      throw new RepositoryDocumentException(
-          "Failed to get last modified time for " + getPath(), e);
-    }
-  }
-
   /**
    * @param fileOrDirectoryName
    * @return the contained file or directory with the specified {@code name}.
@@ -442,7 +430,6 @@ public class MockReadonlyFile implements ReadonlyFile<MockReadonlyFile> {
     fileSystemType = type;
   }
 
-  @Override
   public boolean acceptedBy(FilePatternMatcher matcher) {
     return matcher.acceptName(getPath());
   }

@@ -15,11 +15,12 @@
 package com.google.enterprise.connector.filesystem;
 
 import com.google.enterprise.connector.spi.Document;
-import com.google.enterprise.connector.spi.Principal;
 import com.google.enterprise.connector.spi.Property;
+import com.google.enterprise.connector.spi.Principal;
 import com.google.enterprise.connector.spi.RepositoryDocumentException;
 import com.google.enterprise.connector.spi.RepositoryException;
 import com.google.enterprise.connector.spi.SpiConstants;
+import com.google.enterprise.connector.spi.TraversalContext;
 import com.google.enterprise.connector.spi.Value;
 import com.google.enterprise.connector.spiimpl.BinaryValue;
 import com.google.enterprise.connector.spiimpl.PrincipalValue;
@@ -36,6 +37,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  */

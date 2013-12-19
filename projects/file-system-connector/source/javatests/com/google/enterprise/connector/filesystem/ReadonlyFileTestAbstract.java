@@ -143,7 +143,7 @@ public abstract class ReadonlyFileTestAbstract<T extends FileSystemType<?>,
     assertEquals(getAbsolutePath(file1), readonlyFile1.toString());
   }
 
-  protected String contents(InputStream in) throws IOException {
+  public String contents(InputStream in) throws IOException {
     StringBuilder result = new StringBuilder();
     byte[] buf = new byte[BUF_SIZE];
     int count = in.read(buf);
@@ -288,16 +288,6 @@ public abstract class ReadonlyFileTestAbstract<T extends FileSystemType<?>,
     } catch (IOException expected) {
       assertTrue(expected.getMessage().contains("last modified time"));
     }
-  }
-
-  public void testIsModifiedSince() throws Exception {
-    long lastModified = file1.lastModified();
-    assertTrue(lastModified > 0L);
-    assertTrue(readonlyFile1.isModifiedSince(-1L));
-    assertTrue(readonlyFile1.isModifiedSince(0L));
-    assertTrue(readonlyFile1.isModifiedSince(lastModified - 1000));
-    assertTrue(readonlyFile1.isModifiedSince(lastModified));
-    assertFalse(readonlyFile1.isModifiedSince(lastModified + 1000));
   }
 
   public void testHashCode() throws Exception {
