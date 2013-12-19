@@ -15,6 +15,7 @@
 package com.google.enterprise.connector.filesystem;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Tests for {@link NfsReadonlyFile}.

@@ -213,10 +213,8 @@ abstract class AndXServerMessageBlock extends ServerMessageBlock {
                  * the correct number of bytes for signing purposes. Otherwise we get a
                  * signing verification failure.
                  */
-                if (command == SMB_COM_NT_CREATE_ANDX && ((SmbComNTCreateAndXResponse)this).isExtended
-                        && ((SmbComNTCreateAndXResponse)this).fileType != 1) {
+                if (command == SMB_COM_NT_CREATE_ANDX && ((SmbComNTCreateAndXResponse)this).isExtended)
                     wordCount += 8;
-                }
             }
 
             bufferIndex = start + 1 + (wordCount * 2);

@@ -103,7 +103,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the aceSecurityLevel
    */
-  @Override
   public String getAceSecurityLevel() {
     return aceSecurityLevel;
   }
@@ -118,7 +117,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the lastAccessResetFlagForSmb
    */
-  @Override
   public boolean isLastAccessResetFlagForSmb() {
     return lastAccessResetFlagForSmb;
   }
@@ -133,7 +131,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the lastAccessResetFlagForLocalWindows
    */
-  @Override
   public boolean isLastAccessResetFlagForLocalWindows() {
     return lastAccessResetFlagForLocalWindows;
   }
@@ -149,7 +146,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the markDocumentPublicFlag
    */
-  @Override
   public boolean isMarkAllDocumentsPublic() {
     return markDocumentPublicFlag;
   }
@@ -169,7 +165,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the pushAclFlag
    */
-  @Override
   public boolean isPushAcls() {
     return pushAclFlag;
   }
@@ -194,7 +189,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
    *
    * @return {@code true} if Documents may include enhanced ACL support
    */
-  @Override
   public boolean supportsInheritedAcls() {
     return supportsInheritedAcls;
   }
@@ -212,7 +206,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
    * if the Document should be skipped. The default behavior is to skip
    * the document.
    */
-  @Override
   public boolean useAuthzOnAclError() {
     return useAuthzOnAclError;
   }
@@ -227,7 +220,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * Returns the ACE format for groups
    */
-  @Override
   public String getGroupAclFormat() {
     return groupAclFormat;
   }
@@ -235,7 +227,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * Returns the ACE format for users.
    */
-  @Override
   public String getUserAclFormat() {
     return userAclFormat;
   }
@@ -257,7 +248,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the global namespace
    */
-  @Override
   public String getGlobalNamespace() {
     return globalNamespace;
   }
@@ -265,7 +255,6 @@ public class FileSystemPropertyManager implements SmbFileProperties,
   /**
    * @return the local namespace
    */
-  @Override
   public String getLocalNamespace() {
     return localNamespace;
   }

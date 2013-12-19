@@ -40,8 +40,10 @@ import com.google.enterprise.connector.util.SystemClock;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -49,7 +51,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -118,18 +119,18 @@ class FileLister implements Lister, TraversalContextAware,
         context.getPropertyManager().getIfModifiedSinceCushion());
   }
 
-  @Override
+  /* @Override */
   public void setTraversalContext(TraversalContext traversalContext) {
     this.traversalContext = traversalContext;
     context.setTraversalContext(traversalContext);
   }
 
-  @Override
+  /* @Override */
   public void setDocumentAcceptor(DocumentAcceptor documentAcceptor) {
     this.documentAcceptor = documentAcceptor;
   }
 
-  @Override
+  /* @Override */
   public synchronized void setTraversalSchedule(
         TraversalSchedule traversalSchedule) {
     this.schedule = traversalSchedule;
@@ -168,7 +169,7 @@ class FileLister implements Lister, TraversalContextAware,
                          newTraversalService(false));
   }
 
-  @Override
+  /* @Override */
   public void start() throws RepositoryException {
     TraversalService service = newTraversalService(true);
     Collection<Callable<Void>> traversers = newTraversers(service);
@@ -226,7 +227,7 @@ class FileLister implements Lister, TraversalContextAware,
     return (service == null || service.isShutdown());
   }
 
-  @Override
+  /* @Override */
   public void shutdown() throws RepositoryException {
     TraversalService service = traversalService.get();
     if (service != null) {
@@ -354,7 +355,6 @@ class FileLister implements Lister, TraversalContextAware,
       this.ndc = NDC.peek();
     }
 
-    @Override
     public Void call() throws Exception {
       NDC.clear();
       NDC.push(ndc);
