@@ -16,6 +16,7 @@ package com.google.enterprise.connector.filesystem;
 
 import com.google.enterprise.connector.spi.RepositoryDocumentException;
 import com.google.enterprise.connector.spi.RepositoryException;
+import com.google.enterprise.connector.util.IOExceptionHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -169,7 +169,7 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
       lastModified = delegate.lastModified();
     } catch (IOException e) {
       detectGeneralErrors(e);
-      throw new IOException(
+      throw IOExceptionHelper.newIOException(
           "Failed to get last modified time for " + getPath(), e);
     }
     return lastModified;
@@ -248,7 +248,8 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
       } catch (RepositoryException re) {
         // Ignored.
       }
-      throw new IOException("Failed to get input stream for " + getPath(), e);
+      throw IOExceptionHelper.newIOException(
+          "Failed to get input stream for " + getPath(), e);
     }
   }
 
@@ -260,15 +261,12 @@ public abstract class AbstractReadonlyFile<T extends AbstractReadonlyFile<T>>
       fileNames = delegate.list();
     } catch (IOException e) {
       detectGeneralErrors(e);
-      throw new IOException(
+      throw IOExceptionHelper.newIOException(
            "Failed to list files in directory " + getPath(), e);
     }
     if (fileNames == null) {
       throw new DirectoryListingException("Failed to list files in "
                                           + getPath());
-    } else if (fileNames.length == 0 && LOG.isLoggable(Level.FINEST)) {
-      // Log empty directories for traceability.
-      LOG.finest("Found no files in directory " + getPath());
     }
     List<T> result = new ArrayList<T>(fileNames.length);
     for (int k = 0; k < fileNames.length; ++k) {
