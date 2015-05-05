@@ -54,6 +54,28 @@
     location="${connector-manager-thirdparty-jar.dir}/tests" />
   <property name="spi.jar.dir" value="${connector-manager.dir}/dist/jarfile" />
 
+  <!-- =========================== PATHS =============================== -->
+  <path id="compile.prod.classpath">
+    <fileset dir="${spi.jar.dir}">
+      <include name="connector-logging.jar" />
+      <include name="connector-spi.jar" />
+    </fileset>
+    <fileset dir="${thirdparty-prod-jar.dir}">
+      <include name="**/*.jar" />
+    </fileset>
+    <fileset dir="${connector-manager-thirdparty-prod-jar.dir}">
+      <include name="**/*.jar" />
+    </fileset>
+  </path>
+
+  <path id="compile.tests.classpath">
+    <path refid="compile.prod.classpath" />
+    <fileset dir="${connector-manager-thirdparty-tests-jar.dir}">
+      <include name="**/*.jar" />
+    </fileset>
+    <pathelement location="${jar-prod.file}" />
+  </path>
+
   <!--Cobertura properties -->
   <property file="${config.dir}/build_code_coverage.properties" />
 
@@ -66,7 +88,7 @@
   <!-- =========================== TASKS =============================== -->
   <include file="${connector-manager-projects.dir}/svnbuild.xml" as="svn"/>
 
-  <target name="build" depends="init,compile_prod,run_tests,jar_prod">
+  <target name="build" depends="init,compile,compile_tests,jar">
   </target>
 
   <target name="init" depends="svn.svn-branch-version">
@@ -94,7 +116,7 @@
     <mkdir dir="${tests_out.dir}" />
   </target>
 
-  <target name="compile_prod" depends="init">
+  <target name="compile" depends="init">
     <!-- compile java source files -->
     <javac srcdir="${src-prod.dir}" destdir="${classes-prod.dir}"
            includeantruntime="false"
@@ -104,22 +126,11 @@
       <!-- CM JAR Class-Path references are not available. -->
       <compilerarg line="-Xlint -Xlint:-serial -Xlint:-path"/>
       <bootclasspath path="${COMPILE_BOOTCLASSPATH}"/>
-      <classpath>
-        <fileset dir="${spi.jar.dir}">
-          <include name="connector.jar" /> <!-- For JarUtils. -->
-          <include name="connector-spi.jar" />
-        </fileset>
-        <fileset dir="${thirdparty-prod-jar.dir}" includes="**/*.jar" />
-        <fileset dir="${connector-manager-thirdparty-prod-jar.dir}">
-          <include name="**/gdata-core*.jar" />
-          <include name="**/guava*.jar" />
-          <include name="**/json.jar" />
-        </fileset>
-      </classpath>
+      <classpath refid="compile.prod.classpath"/>
     </javac>
   </target>
 
-  <target name="compile_tests" depends="init,jar_prod">
+  <target name="compile_tests" depends="init,jar">
     <!-- compile java source files for tests -->
     <javac srcdir="${src-tests.dir}" destdir="${classes-tests.dir}"
            includeantruntime="false"
@@ -129,23 +140,15 @@
       <!-- CM JAR Class-Path references are not available. -->
       <compilerarg line="-Xlint -Xlint:-serial -Xlint:-path"/>
       <bootclasspath path="${COMPILE_BOOTCLASSPATH}"/>
-      <classpath>
-        <fileset dir="${connector-manager-thirdparty-prod-jar.dir}">
-          <include name="**/spring.jar" />
-          <include name="**/guava*.jar" />
-          <include name="**/json.jar" />
-        </fileset>
-        <fileset dir="${connector-manager-thirdparty-tests-jar.dir}">
-          <include name="**/*.jar" />
-        </fileset>
-        <fileset dir="${spi.jar.dir}" includes="**/connector-spi.jar" />
-        <fileset dir="${thirdparty-prod-jar.dir}" includes="**/*.jar" />
-        <pathelement location="${jar-prod.file}" />
-      </classpath>
+      <classpath refid="compile.tests.classpath"/>
     </javac>
   </target>
 
-  <target name="run_tests" depends="compile_tests,jar_prod,instrument">
+  <target name="run_tests">
+    <echo message="The run_tests target is deprecated. Use test instead." />
+  </target>
+
+  <target name="test" depends="compile_tests,jar,instrument">
     <property name="test.suite" value="*" />
     <mkdir dir="${classes-tests.dir}/com/google/enterprise/connector/filesystem/config"/>
 
@@ -161,19 +164,12 @@
           Cobertura runtime, so Cobertura and its dependencies
           must be on your classpath.
         -->
-      <classpath location="${instrumented.dir}" />
-      <classpath refid="cobertura.classpath" />
       <classpath>
+        <pathelement location="${instrumented.dir}" />
+        <path refid="cobertura.classpath" />
+        <path refid="compile.tests.classpath" />
         <pathelement location="${classes-tests.dir}" />
-        <fileset dir="${connector-manager-thirdparty-prod-jar.dir}">
-          <include name="**/*.jar" />
-        </fileset>
-        <fileset dir="${connector-manager-thirdparty-tests-jar.dir}">
-          <include name="**/*.jar" />
-        </fileset>
-        <fileset dir="${spi.jar.dir}" includes="**/*.jar" />
-        <fileset dir="${thirdparty-prod-jar.dir}" includes="**/*.jar" />
-        <pathelement location="${jar-prod.file}" />
+        <fileset dir="${spi.jar.dir}" includes="**/connector.jar" />
       </classpath>
       <formatter type="xml" />
       <batchtest todir="${reports.xml.dir}">
@@ -200,8 +196,8 @@
     <fail if="${ant.project.name}.failure" message="Test failure"/>
   </target>
 
-  <target name="jar_prod" description="Build filesystem-connector-jar"
-          depends="compile_prod">
+  <target name="jar" description="Build filesystem-connector-jar"
+          depends="compile">
     <copy todir="${build-prod-config.dir}">
       <fileset dir="${config.dir}" excludes="**/*.properties" />
     </copy>
@@ -230,7 +226,7 @@
     </jar>
   </target>
 
-  <target name="javadoc_prod" depends="compile_prod"
+  <target name="javadoc" depends="compile"
           description="Create component Javadoc documentation">
       <javadoc sourcepath   ="${src-prod.dir}"
                destdir      ="${javadoc.dir}"
@@ -241,14 +237,11 @@
                doctitle     ="&lt;h2&gt;${product}&lt;/h2&gt;"
                windowtitle  ="${product} (Version ${version})"
                bottom       ="Copyright 2009 Google Inc." >
-      <classpath>
-        <fileset dir="${spi.jar.dir}" includes="**/*.jar" />
-        <fileset dir="${thirdparty-prod-jar.dir}" includes="**/*.jar" />
-      </classpath>
+      <classpath refid="compile.prod.classpath" />
     </javadoc>
   </target>
 
-  <target name="download_filesystem_connector" depends="jar_prod"
+  <target name="downloads" depends="jar"
           description="Build distribution zip files.">
     <zip destfile="${connector-filesystem-src.zip}" >
       <zipfileset dir="."
@@ -309,7 +302,7 @@
   </target>
 
   <target name="compile_code_coverage"
-          depends="init_code_coverage,compile_prod,compile_tests" />
+          depends="init_code_coverage,compile,compile_tests" />
 
   <target name="instrument" depends="compile_code_coverage">
     <!--
@@ -325,6 +318,9 @@
           purposes of coverage reporting.
         -->
       <ignore regex="org.apache.log4j.*" />
+
+      <!-- Cobertura needs prod class dependencies during instrumentation. -->
+      <auxClassPath refid="compile.prod.classpath"/>
 
       <fileset dir="${classes.dir}">
         <!--
@@ -367,8 +363,11 @@
   </target>
 
   <target name="run_code_coverage"
-          depends="run_tests,coverage-report,alternate-coverage-report"
+          depends="test,coverage-report,alternate-coverage-report"
           description="Compile, instrument ourself, run the tests and generate JUnit and coverage reports."/>
+
+  <target name="everything" depends="clean,build,test,downloads"
+          description="clean, build, test, downloads" />
 
 </project>
 
