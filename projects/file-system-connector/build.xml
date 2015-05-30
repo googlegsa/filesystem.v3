@@ -38,7 +38,6 @@
   <property name="release-notes.file" value="RELEASE_NOTES" />
   <property name="downloads.dir" value="downloads" />
 
-  <property name="tests_out.dir" value="tests_outdir" />
   <property name="tests.logging.properties"
             location="${classes-tests.dir}/tests.logging.properties"/>
 
@@ -112,8 +111,6 @@
 
     <mkdir dir="${javadoc.dir}" />
     <mkdir dir="${javadoc-prod.dir}" />
-
-    <mkdir dir="${tests_out.dir}" />
   </target>
 
   <target name="compile" depends="init">
@@ -172,15 +169,9 @@
         <fileset dir="${spi.jar.dir}" includes="**/connector.jar" />
       </classpath>
       <formatter type="xml" />
+      <formatter type="brief" usefile="no"/>
       <batchtest todir="${reports.xml.dir}">
         <fileset dir="${test.dir}">
-          <include name="**/${test.suite}Test.java" />
-        </fileset>
-      </batchtest>
-      <formatter type="brief" usefile="no"/>
-      <formatter type="plain" />
-      <batchtest fork="yes" todir="${tests_out.dir}">
-        <fileset dir="${src-tests.dir}">
           <include name="**/${test.suite}Test.java" />
         </fileset>
       </batchtest>
@@ -284,7 +275,6 @@
     <delete dir="${build.dir}" />
     <delete dir="${downloads.dir}" />
     <delete dir="${javadoc.dir}" />
-    <delete dir="${tests_out.dir}" />
   </target>
 
   <!-- Cobertura Tasks -->
